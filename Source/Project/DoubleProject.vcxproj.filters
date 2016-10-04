@@ -1,0 +1,126 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="3rd Party">
+      <UniqueIdentifier>{7213169e-9b29-4ece-aa4b-2dcc12315a78}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd Party\Math">
+      <UniqueIdentifier>{1b33ca52-ceb0-4f6c-8fdf-e2c3e376d858}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rd Party\Common">
+      <UniqueIdentifier>{c5b4db68-b3c6-4236-817e-f53e7bdb2b28}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine">
+      <UniqueIdentifier>{76847ab6-1d19-489e-b29f-4dee86c859bd}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\3rd Party\Common\CFatalException.cpp">
+      <Filter>3rd Party\Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rd Party\Common\MSDefines.cpp">
+      <Filter>3rd Party\Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rd Party\Common\Utility.cpp">
+      <Filter>3rd Party\Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rd Party\Math\BaseMath.cpp">
+      <Filter>3rd Party\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rd Party\Math\CMatrix2x2.cpp">
+      <Filter>3rd Party\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rd Party\Math\CMatrix3x3.cpp">
+      <Filter>3rd Party\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rd Party\Math\CMatrix4x4.cpp">
+      <Filter>3rd Party\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rd Party\Math\CQuaternion.cpp">
+      <Filter>3rd Party\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rd Party\Math\CQuatTransform.cpp">
+      <Filter>3rd Party\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rd Party\Math\CVector2.cpp">
+      <Filter>3rd Party\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rd Party\Math\CVector3.cpp">
+      <Filter>3rd Party\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rd Party\Math\CVector4.cpp">
+      <Filter>3rd Party\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rd Party\Math\MathIO.cpp">
+      <Filter>3rd Party\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rd Party\CImportXFile.cpp">
+      <Filter>3rd Party</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\3rd Party\Common\CFatalException.h">
+      <Filter>3rd Party\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rd Party\Common\Error.h">
+      <Filter>3rd Party\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rd Party\Common\GenDefines.h">
+      <Filter>3rd Party\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rd Party\Common\MSDefines.h">
+      <Filter>3rd Party\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rd Party\Common\Utility.h">
+      <Filter>3rd Party\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rd Party\Math\BaseMath.h">
+      <Filter>3rd Party\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rd Party\Math\CMatrix2x2.h">
+      <Filter>3rd Party\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rd Party\Math\CMatrix3x3.h">
+      <Filter>3rd Party\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rd Party\Math\CMatrix4x4.h">
+      <Filter>3rd Party\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rd Party\Math\CQuaternion.h">
+      <Filter>3rd Party\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rd Party\Math\CQuatTransform.h">
+      <Filter>3rd Party\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rd Party\Math\CVector2.h">
+      <Filter>3rd Party\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rd Party\Math\CVector3.h">
+      <Filter>3rd Party\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rd Party\Math\CVector4.h">
+      <Filter>3rd Party\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rd Party\Math\MathDX.h">
+      <Filter>3rd Party\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rd Party\Math\MathIO.h">
+      <Filter>3rd Party\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rd Party\CImportXFile.h">
+      <Filter>3rd Party</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rd Party\Colour.h">
+      <Filter>3rd Party</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rd Party\MeshData.h">
+      <Filter>3rd Party</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rd Party\rmxfguid.h">
+      <Filter>3rd Party</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rd Party\rmxftmpl.h">
+      <Filter>3rd Party</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

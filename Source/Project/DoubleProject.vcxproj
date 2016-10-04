@@ -18,6 +18,45 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\3rd Party\CImportXFile.cpp" />
+    <ClCompile Include="..\..\3rd Party\Common\CFatalException.cpp" />
+    <ClCompile Include="..\..\3rd Party\Common\MSDefines.cpp" />
+    <ClCompile Include="..\..\3rd Party\Common\Utility.cpp" />
+    <ClCompile Include="..\..\3rd Party\Math\BaseMath.cpp" />
+    <ClCompile Include="..\..\3rd Party\Math\CMatrix2x2.cpp" />
+    <ClCompile Include="..\..\3rd Party\Math\CMatrix3x3.cpp" />
+    <ClCompile Include="..\..\3rd Party\Math\CMatrix4x4.cpp" />
+    <ClCompile Include="..\..\3rd Party\Math\CQuaternion.cpp" />
+    <ClCompile Include="..\..\3rd Party\Math\CQuatTransform.cpp" />
+    <ClCompile Include="..\..\3rd Party\Math\CVector2.cpp" />
+    <ClCompile Include="..\..\3rd Party\Math\CVector3.cpp" />
+    <ClCompile Include="..\..\3rd Party\Math\CVector4.cpp" />
+    <ClCompile Include="..\..\3rd Party\Math\MathIO.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\3rd Party\CImportXFile.h" />
+    <ClInclude Include="..\..\3rd Party\Colour.h" />
+    <ClInclude Include="..\..\3rd Party\Common\CFatalException.h" />
+    <ClInclude Include="..\..\3rd Party\Common\Error.h" />
+    <ClInclude Include="..\..\3rd Party\Common\GenDefines.h" />
+    <ClInclude Include="..\..\3rd Party\Common\MSDefines.h" />
+    <ClInclude Include="..\..\3rd Party\Common\Utility.h" />
+    <ClInclude Include="..\..\3rd Party\Math\BaseMath.h" />
+    <ClInclude Include="..\..\3rd Party\Math\CMatrix2x2.h" />
+    <ClInclude Include="..\..\3rd Party\Math\CMatrix3x3.h" />
+    <ClInclude Include="..\..\3rd Party\Math\CMatrix4x4.h" />
+    <ClInclude Include="..\..\3rd Party\Math\CQuaternion.h" />
+    <ClInclude Include="..\..\3rd Party\Math\CQuatTransform.h" />
+    <ClInclude Include="..\..\3rd Party\Math\CVector2.h" />
+    <ClInclude Include="..\..\3rd Party\Math\CVector3.h" />
+    <ClInclude Include="..\..\3rd Party\Math\CVector4.h" />
+    <ClInclude Include="..\..\3rd Party\Math\MathDX.h" />
+    <ClInclude Include="..\..\3rd Party\Math\MathIO.h" />
+    <ClInclude Include="..\..\3rd Party\MeshData.h" />
+    <ClInclude Include="..\..\3rd Party\rmxfguid.h" />
+    <ClInclude Include="..\..\3rd Party\rmxftmpl.h" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{9168122F-5B4D-49E4-BB3E-EA5B17463423}</ProjectGuid>
     <RootNamespace>DoubleProject</RootNamespace>
@@ -68,12 +107,20 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
-  <PropertyGroup />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(DXSDK_DIR)Include;</IncludePath>
+    <LibraryPath>$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86);$(NETFXKitsDir)Lib\um\x86;$(DXSDK_DIR)Lib\x86;</LibraryPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(DXSDK_DIR)Include;</IncludePath>
+    <LibraryPath>$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86);$(NETFXKitsDir)Lib\um\x86;$(DXSDK_DIR)Lib\x86;</LibraryPath>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>..\..\3rd Party\Math;..\..\3rd Party\Common;..\..\3rd Party;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -90,6 +137,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>..\..\3rd Party\Math;..\..\3rd Party\Common;..\..\3rd Party;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -109,8 +157,6 @@
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
   </ItemDefinitionGroup>
-  <ItemGroup>
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
