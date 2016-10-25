@@ -13,6 +13,15 @@
     <Filter Include="Engine">
       <UniqueIdentifier>{76847ab6-1d19-489e-b29f-4dee86c859bd}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Engine\Scene">
+      <UniqueIdentifier>{fa71b668-36c6-47e4-a1d8-caf0308e06f2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Rendering">
+      <UniqueIdentifier>{f9d50748-9eca-48b7-b219-5ba6f597146e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Example">
+      <UniqueIdentifier>{4666fba9-c136-4858-a8cd-fe048a85cc5a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\3rd Party\Common\CFatalException.cpp">
@@ -56,6 +65,18 @@
     </ClCompile>
     <ClCompile Include="..\..\3rd Party\CImportXFile.cpp">
       <Filter>3rd Party</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Example\main.cpp">
+      <Filter>Example</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Engine\Rendering\DXRenderDevice.cpp">
+      <Filter>Engine\Rendering</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Engine\SceneNode.cpp">
+      <Filter>Engine\Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Engine\Light.cpp">
+      <Filter>Engine\Scene</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -121,6 +142,27 @@
     </ClInclude>
     <ClInclude Include="..\..\3rd Party\rmxftmpl.h">
       <Filter>3rd Party</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Engine\Rendering\DXIncludes.h">
+      <Filter>Engine\Rendering</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Example\Engine.h">
+      <Filter>Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Interface\IEngine.h">
+      <Filter>Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Engine\Rendering\DXRenderDevice.h">
+      <Filter>Engine\Rendering</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Interface\IRenderDevice.h">
+      <Filter>Engine\Rendering</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Engine\Light.h">
+      <Filter>Engine\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Engine\SceneNode.h">
+      <Filter>Engine\Scene</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

@@ -33,6 +33,10 @@
     <ClCompile Include="..\..\3rd Party\Math\CVector3.cpp" />
     <ClCompile Include="..\..\3rd Party\Math\CVector4.cpp" />
     <ClCompile Include="..\..\3rd Party\Math\MathIO.cpp" />
+    <ClCompile Include="..\Engine\Light.cpp" />
+    <ClCompile Include="..\Engine\Rendering\DXRenderDevice.cpp" />
+    <ClCompile Include="..\Engine\SceneNode.cpp" />
+    <ClCompile Include="..\Example\main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\3rd Party\CImportXFile.h" />
@@ -56,6 +60,13 @@
     <ClInclude Include="..\..\3rd Party\MeshData.h" />
     <ClInclude Include="..\..\3rd Party\rmxfguid.h" />
     <ClInclude Include="..\..\3rd Party\rmxftmpl.h" />
+    <ClInclude Include="..\Engine\Light.h" />
+    <ClInclude Include="..\Engine\Rendering\DXRenderDevice.h" />
+    <ClInclude Include="..\Engine\Rendering\DXIncludes.h" />
+    <ClInclude Include="..\Engine\SceneNode.h" />
+    <ClInclude Include="..\Example\Engine.h" />
+    <ClInclude Include="..\Interface\IEngine.h" />
+    <ClInclude Include="..\Interface\IRenderDevice.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{9168122F-5B4D-49E4-BB3E-EA5B17463423}</ProjectGuid>
@@ -120,7 +131,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>..\..\3rd Party\Math;..\..\3rd Party\Common;..\..\3rd Party;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\3rd Party\Math;..\..\3rd Party\Common;..\..\3rd Party;..\Interface;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -137,7 +148,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>..\..\3rd Party\Math;..\..\3rd Party\Common;..\..\3rd Party;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\3rd Party\Math;..\..\3rd Party\Common;..\..\3rd Party;..\Interface;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
