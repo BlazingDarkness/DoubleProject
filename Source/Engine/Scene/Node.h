@@ -5,7 +5,7 @@
 
 namespace Scene
 {
-	class SceneNode
+	class Node
 	{
 	public:
 
@@ -13,16 +13,16 @@ namespace Scene
 		// Construct / destruction
 
 		//Creates a node at the origin
-		SceneNode();
+		Node();
 
 		//Creates a node with a position, rotation, and scale
-		SceneNode(const gen::CVector3& pos, const  gen::CVector3& rot = gen::CVector3::kZero, const gen::CVector3& scale = gen::CVector3::kOne);
+		Node(const gen::CVector3& pos, const  gen::CVector3& rot = gen::CVector3::kZero, const gen::CVector3& scale = gen::CVector3::kOne);
 
 		//Creates a node with position, rotation, and scale extracted from a matrix
-		SceneNode(const gen::CMatrix4x4& mat);
+		Node(const gen::CMatrix4x4& mat);
 
 		//Destructor, ensures it is detached from all other nodes
-		~SceneNode();
+		~Node();
 
 
 		///////////////////////////
@@ -60,7 +60,7 @@ namespace Scene
 		}
 
 		//Sets the parent node
-		void SetParent(SceneNode* node);
+		void SetParent(Node* node);
 
 
 		///////////////////////////
@@ -88,14 +88,14 @@ namespace Scene
 
 		//Used to tell a parent to detach a child
 		//This function is called by the child on its parent
-		void DetachChild(SceneNode* child);
+		void DetachChild(Node* child);
 
 		//Used to tell a child to detach from its parent
 		//This function is called by the parent on its child
 		void DetachParent();
 
 		//Adds a child node to this one
-		void AddChild(SceneNode* child);
+		void AddChild(Node* child);
 
 
 		///////////////////////////
@@ -104,7 +104,7 @@ namespace Scene
 		gen::CMatrix4x4 m_WorldMatrix;
 		gen::CMatrix4x4 m_RelMatrix;
 
-		SceneNode* m_pParent;
-		std::list<SceneNode*> m_pChildren;
+		Node* m_pParent;
+		std::list<Node*> m_pChildren;
 	};
 }

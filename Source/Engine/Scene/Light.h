@@ -1,9 +1,9 @@
 #pragma once
-#include "SceneNode.h"
+#include "Node.h"
 
 namespace Scene
 {
-	class Light : public SceneNode
+	class Light : public Node
 	{
 	public:
 		///////////////////////////
