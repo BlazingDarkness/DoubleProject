@@ -1,15 +1,6 @@
-/**************************************************************************************************
-	Module:       CImportXFile.cpp
-	Author:       Laurent Noel
-	Date created: 11/10/05
-
-	Class encapsulating the import of a Microsoft DirectX .X file
-
-	Copyright 2006, University of Central Lancashire and Laurent Noel
-
-	Change history:
-		V1.0    Created 12/06/06 - LN
-**************************************************************************************************/
+//--------------------------------------------------------------------------------------
+// Class encapsulating the import of a Microsoft DirectX .X file
+//--------------------------------------------------------------------------------------
 
 #include <algorithm>
 #include <numeric>
@@ -64,7 +55,7 @@ bool CImportXFile::IsXFile
 }
 
 	
-// Import a Microsoft X-File into a list of meshes and a frame hierarchy
+// Import a Microsoft X-File into a list of meshes and a frame hierarchy. Optionally calculate adjacency data
 // Possible return values:
 //		kSuccess:			...
 //		kFileError:			Missing file or not an X-file
@@ -73,7 +64,8 @@ bool CImportXFile::IsXFile
 //		kSystemFailure:		X-file API failure
 EImportError CImportXFile::ImportFile
 (
-	const string& sFileName
+	const string& sFileName,
+	bool          bAdjacency /*= false*/
 )
 {
 	GEN_GUARD;
@@ -122,7 +114,17 @@ EImportError CImportXFile::ImportFile
 	}
 
 	// Split into meshes containing only one material each
-	SplitMeshes();
+	// Commented out to allow multi-material meshes to load for the matrix hierarchy/skinning labs
+//	SplitMeshes();
+
+	// Calculate adjacency data for each mesh
+	if (bAdjacency)
+	{
+		for (TUInt32 iMesh = 0; iMesh < m_Meshes.size(); ++iMesh)
+		{
+			CalculateAdjacency( iMesh );
+		}
+	}
 
 	// Mark file as loaded
 	m_bImported = true;
@@ -163,8 +165,9 @@ ERenderMethod CImportXFile::GetSubMeshRenderMethod( const TUInt32 iSubMesh ) con
 }
 
 
-// Get the specification and data for given sub-mesh, returned through a pointer. May request
-// tangents to be calculated
+// Get the specification and data for given sub-mesh, returned through a pointer. May request tangents
+// to be calculated (for normal or parallax mapping), and adjacency data can optionally be added to the
+// index buffer (for geometry shaders)
 // Possible return values:
 //		kSuccess:			...
 //		kOutOfSystemMemory:	...
@@ -172,7 +175,8 @@ EImportError CImportXFile::GetSubMesh
 (
 	const TUInt32 iSubMesh,
 	SSubMesh*     pOutSubMesh,
-	bool          bTangents /*= false*/
+	bool          bTangents /*= false*/,
+	bool          bAdjacency /*= false*/
 ) const
 {
 	GEN_GUARD;
@@ -189,7 +193,8 @@ EImportError CImportXFile::GetSubMesh
 	}
 
 	// Find what vertex data there is and calculate total vertex size
-	pOutSubMesh->hasSkinningData = (m_Meshes[iSubMesh].bones.size() > 0);
+//	pOutSubMesh->hasSkinningData = (m_Meshes[iSubMesh].bones.size() > 0);
+	pOutSubMesh->hasSkinningData = true; // Always create skinning data for this lab
 	pOutSubMesh->hasNormals = (m_Meshes[iSubMesh].normals.size() > 0);
 	pOutSubMesh->hasTextureCoords = (m_Meshes[iSubMesh].textureCoords.size() > 0);
 	pOutSubMesh->hasVertexColours = (m_Meshes[iSubMesh].vertexColours.size() > 0);
@@ -292,7 +297,7 @@ EImportError CImportXFile::GetSubMesh
 
 		// Normalise vertex bone weights (ensure they add up to 1)
 		TUInt8* pVert = pOutSubMesh->vertices;
-		for (TUInt32 vert = 0; vert < pOutSubMesh->vertexSize; ++vert)
+		for (TUInt32 vert = 0; vert < pOutSubMesh->numVertices; ++vert)
 		{
 			TFloat32* pVertBoneWeights = reinterpret_cast<TFloat32*>(pVert + boneWeightsOffset);
 			TUInt8* pVertBoneIndices = reinterpret_cast<TUInt8*>(pVert + boneIndicesOffset);
@@ -320,9 +325,6 @@ EImportError CImportXFile::GetSubMesh
 	pOutSubMesh->numFaces = static_cast<TUInt32>(m_Meshes[iSubMesh].faces.size());
 	pOutSubMesh->faces = new SMeshFace[pOutSubMesh->numFaces];
 
-	// Get material from material map (all faces in sub-mesh have the same material at this point)
-	pOutSubMesh->material = m_Meshes[iSubMesh].materialMap.front();
-
 	// Loop through faces outputing to given sub-mesh
 	TXFileFaces::const_iterator itFace = m_Meshes[iSubMesh].faces.begin();
 	TXFileFaces::const_iterator itFaceEnd = m_Meshes[iSubMesh].faces.end();
@@ -333,6 +335,26 @@ EImportError CImportXFile::GetSubMesh
 		pOutSubMesh->faces[iFace].aiVertex[2] = itFace->aiVertex[2];
 		++itFace;
 	}
+
+	// Output adjacency list if requested (output as a triangle of adjacent vertices for each face)
+	if (bAdjacency)
+	{
+		pOutSubMesh->faceAdjacency = new SMeshFace[pOutSubMesh->numFaces];
+		TXFileInts::const_iterator itAdj = m_Meshes[iSubMesh].adjacencyIndices.begin();
+		for (TUInt32 iFace = 0; iFace < pOutSubMesh->numFaces; ++iFace)
+		{
+			pOutSubMesh->faceAdjacency[iFace].aiVertex[0] = *itAdj++;
+			pOutSubMesh->faceAdjacency[iFace].aiVertex[1] = *itAdj++;
+			pOutSubMesh->faceAdjacency[iFace].aiVertex[2] = *itAdj++;
+		}
+	}
+	else
+	{
+		pOutSubMesh->faceAdjacency = 0;
+	}
+
+	// Get material from material map (all faces in sub-mesh have the same material at this point)
+	pOutSubMesh->material = m_Meshes[iSubMesh].materialMap.front();
 
 	return kSuccess;
 
@@ -1993,6 +2015,7 @@ EImportError CImportXFile::ProcessBones()
 				if (m_Meshes[iMesh].bones[iBone].sFrameName == m_Frames[iFrame].sName)
 				{
 					m_Meshes[iMesh].bones[iBone].iFrame = iFrame;
+					m_Frames[iFrame].offsetMatrix = m_Meshes[iMesh].bones[iBone].offsetMatrix;
 					bFoundFrame = true;
 					break;
 				}
@@ -2144,5 +2167,88 @@ bool CImportXFile::CalculateTangents
 	return true;
 }
 
+
+// Create adjacency indices for a given mesh - each indexes the vertex adjacent to each triangle edge
+// Will consider vertices within given snap range as the same vertex for this purpose
+void CImportXFile::CalculateAdjacency
+(
+	TUInt32 iMesh,
+	float   fSnap /*= 0.001f*/ // Default 1mm snap assuming 1 unit = 1 metre
+)
+{
+	// Create vertex duplication map. Sometimes vertices in the same place are duplicated, for example,
+	// if they have different texture coords. We need to identify such duplication, because for the purposese
+	// of geometry, two vertices in the same place are the same vertex, regardless of other data that may
+	// be different. Here we create an array of integers, one for each vertex, referring to the lowest
+	// vertex it is a duplicate of. All duplicate vertices will share the same value for this and it can
+	// be used to quickly check if two seemingly different vertices are actually in the same place and so
+	// should be considered in adjacency code
+	TUInt32 numVerts = m_Meshes[iMesh].vertices.size();
+	TUInt16* duplicates = new TUInt16[numVerts];
+	for (TUInt32 iVert = 0; iVert < numVerts; ++iVert)
+	{
+		CVector3 vertex = m_Meshes[iMesh].vertices[iVert];
+		duplicates[iVert] = iVert;
+		for (TUInt32 iDupe = 0; iDupe < iVert; ++iDupe)
+		{
+			// Consider vertices within snap range of each other as duplicates
+			if (Length(vertex - m_Meshes[iMesh].vertices[iDupe]) < fSnap)
+			{
+				duplicates[iVert] = iDupe;
+				break;
+			}
+		}
+	}
+
+	// Size adjacency vector
+	TUInt32 numFaces = m_Meshes[iMesh].faces.size();
+	m_Meshes[iMesh].adjacencyIndices.resize( numFaces * 3 );
+
+	// Step through faces
+	TUInt32 iAdj = 0;
+	for (TUInt32 iFace = 0; iFace < numFaces; ++iFace)
+	{
+		// Step through each edge
+		for (TUInt32 iEdge = 0; iEdge < 3; ++iEdge)
+		{
+			// Find a vertex (in another face) that is adjacent to this edge
+			TUInt32 iVert0 = m_Meshes[iMesh].faces[iFace].aiVertex[iEdge];
+			TUInt32 iVert1 = m_Meshes[iMesh].faces[iFace].aiVertex[(iEdge+1)%3];
+
+			// Brute force - search all other faces for an adjacent face
+			m_Meshes[iMesh].adjacencyIndices[iAdj] = iVert0;
+			for (TUInt32 iAdjFace = 0; iAdjFace < numFaces; ++iAdjFace)
+			{
+				if (iAdjFace == iFace) continue; // Skip face that we're working on
+				TUInt32* adjFaceIndices = &m_Meshes[iMesh].faces[iAdjFace].aiVertex[0];
+
+				// Adjacent face must have same edge, but in reverse order (or face normal would be pointing other way)
+				// Use duplicate map created above to see if vertices are equivalent
+				if (duplicates[iVert0] == duplicates[adjFaceIndices[1]] && 
+				    duplicates[iVert1] == duplicates[adjFaceIndices[0]])
+				{
+					// Adjacency data is just the single vertex (index) that is adjacent to the edge
+					m_Meshes[iMesh].adjacencyIndices[iAdj] = adjFaceIndices[2];
+					break;
+				}
+				if (duplicates[iVert0] == duplicates[adjFaceIndices[2]] && 
+				    duplicates[iVert1] == duplicates[adjFaceIndices[1]])
+				{
+					m_Meshes[iMesh].adjacencyIndices[iAdj] = adjFaceIndices[0];
+					break;
+				}
+				if (duplicates[iVert0] == duplicates[adjFaceIndices[0]] && 
+				    duplicates[iVert1] == duplicates[adjFaceIndices[2]])
+				{
+					m_Meshes[iMesh].adjacencyIndices[iAdj] = adjFaceIndices[1];
+					break;
+				}
+			}
+			++iAdj;
+		}
+	}
+
+	delete[] duplicates;
+}
 
 } // namespace gen
