@@ -33,10 +33,14 @@
     <ClCompile Include="..\..\3rd Party\Math\CVector3.cpp" />
     <ClCompile Include="..\..\3rd Party\Math\CVector4.cpp" />
     <ClCompile Include="..\..\3rd Party\Math\MathIO.cpp" />
-    <ClCompile Include="..\Engine\Light.cpp" />
+    <ClCompile Include="..\Engine\Engine.cpp" />
     <ClCompile Include="..\Engine\Rendering\DXRenderDevice.cpp" />
-    <ClCompile Include="..\Engine\SceneNode.cpp" />
-    <ClCompile Include="..\Example\main.cpp" />
+    <ClCompile Include="..\Engine\Rendering\Mesh.cpp" />
+    <ClCompile Include="..\Engine\Scene\Camera.cpp" />
+    <ClCompile Include="..\Engine\Scene\Light.cpp" />
+    <ClCompile Include="..\Engine\Scene\Manager.cpp" />
+    <ClCompile Include="..\Engine\Scene\Node.cpp" />
+    <ClCompile Include="..\Engine\Shaders\DepthShader.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\3rd Party\CImportXFile.h" />
@@ -60,13 +64,29 @@
     <ClInclude Include="..\..\3rd Party\MeshData.h" />
     <ClInclude Include="..\..\3rd Party\rmxfguid.h" />
     <ClInclude Include="..\..\3rd Party\rmxftmpl.h" />
-    <ClInclude Include="..\Engine\Light.h" />
+    <ClInclude Include="..\Engine\Engine.h" />
     <ClInclude Include="..\Engine\Rendering\DXRenderDevice.h" />
     <ClInclude Include="..\Engine\Rendering\DXIncludes.h" />
-    <ClInclude Include="..\Engine\SceneNode.h" />
-    <ClInclude Include="..\Example\Engine.h" />
+    <ClInclude Include="..\Engine\Rendering\IShader.h" />
+    <ClInclude Include="..\Engine\Rendering\MaterialManager.h" />
+    <ClInclude Include="..\Engine\Rendering\Mesh.h" />
+    <ClInclude Include="..\Engine\Rendering\MeshManager.h" />
+    <ClInclude Include="..\Engine\Scene\Camera.h" />
+    <ClInclude Include="..\Engine\Scene\Light.h" />
+    <ClInclude Include="..\Engine\Scene\Manager.h" />
+    <ClInclude Include="..\Engine\Scene\Node.h" />
+    <ClInclude Include="..\Engine\Shaders\DepthShader.h" />
     <ClInclude Include="..\Interface\IEngine.h" />
-    <ClInclude Include="..\Interface\IRenderDevice.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="..\Engine\Shaders\PixelDepth.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">5.0</ShaderModel>
+    </FxCompile>
+    <FxCompile Include="..\Engine\Shaders\VertexTransform.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Vertex</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">5.0</ShaderModel>
+    </FxCompile>
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{9168122F-5B4D-49E4-BB3E-EA5B17463423}</ProjectGuid>
@@ -77,8 +97,8 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
+    <CharacterSet>Unicode</CharacterSet>
     <PlatformToolset>v140</PlatformToolset>
-    <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
@@ -131,8 +151,11 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>..\..\3rd Party\Math;..\..\3rd Party\Common;..\..\3rd Party;..\Interface;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\Engine;..\..\3rd Party\Math;..\..\3rd Party\Common;..\..\3rd Party;..\Interface;C:\Users\mhartley3\Documents\Visual Studio 2015\Projects\DoubleProject\Source\Engine\Rendering;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
+    <Link>
+      <AdditionalDependencies>d3dxof.lib;dxguid.lib;d3dx9d.lib;d3d9.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -148,7 +171,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>..\..\3rd Party\Math;..\..\3rd Party\Common;..\..\3rd Party;..\Interface;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\Engine;..\..\3rd Party\Math;..\..\3rd Party\Common;..\..\3rd Party;..\Interface;C:\Users\mhartley3\Documents\Visual Studio 2015\Projects\DoubleProject\Source\Engine\Rendering;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>

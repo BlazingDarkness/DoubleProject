@@ -22,6 +22,9 @@
     <Filter Include="Example">
       <UniqueIdentifier>{4666fba9-c136-4858-a8cd-fe048a85cc5a}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Engine\Shaders">
+      <UniqueIdentifier>{30b5315b-6caf-4505-bc96-613789cc69f0}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\3rd Party\Common\CFatalException.cpp">
@@ -66,17 +69,29 @@
     <ClCompile Include="..\..\3rd Party\CImportXFile.cpp">
       <Filter>3rd Party</Filter>
     </ClCompile>
-    <ClCompile Include="..\Example\main.cpp">
-      <Filter>Example</Filter>
-    </ClCompile>
     <ClCompile Include="..\Engine\Rendering\DXRenderDevice.cpp">
       <Filter>Engine\Rendering</Filter>
     </ClCompile>
-    <ClCompile Include="..\Engine\SceneNode.cpp">
+    <ClCompile Include="..\Engine\Engine.cpp">
+      <Filter>Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Engine\Scene\Light.cpp">
       <Filter>Engine\Scene</Filter>
     </ClCompile>
-    <ClCompile Include="..\Engine\Light.cpp">
+    <ClCompile Include="..\Engine\Scene\Manager.cpp">
       <Filter>Engine\Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Engine\Scene\Node.cpp">
+      <Filter>Engine\Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Engine\Scene\Camera.cpp">
+      <Filter>Engine\Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Engine\Shaders\DepthShader.cpp">
+      <Filter>Engine\Shaders</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Engine\Rendering\Mesh.cpp">
+      <Filter>Engine\Rendering</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -146,23 +161,49 @@
     <ClInclude Include="..\Engine\Rendering\DXIncludes.h">
       <Filter>Engine\Rendering</Filter>
     </ClInclude>
-    <ClInclude Include="..\Example\Engine.h">
-      <Filter>Engine</Filter>
-    </ClInclude>
     <ClInclude Include="..\Interface\IEngine.h">
       <Filter>Engine</Filter>
     </ClInclude>
     <ClInclude Include="..\Engine\Rendering\DXRenderDevice.h">
       <Filter>Engine\Rendering</Filter>
     </ClInclude>
-    <ClInclude Include="..\Interface\IRenderDevice.h">
+    <ClInclude Include="..\Engine\Rendering\IShader.h">
       <Filter>Engine\Rendering</Filter>
     </ClInclude>
-    <ClInclude Include="..\Engine\Light.h">
+    <ClInclude Include="..\Engine\Engine.h">
+      <Filter>Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Engine\Scene\Light.h">
       <Filter>Engine\Scene</Filter>
     </ClInclude>
-    <ClInclude Include="..\Engine\SceneNode.h">
+    <ClInclude Include="..\Engine\Scene\Manager.h">
       <Filter>Engine\Scene</Filter>
     </ClInclude>
+    <ClInclude Include="..\Engine\Scene\Node.h">
+      <Filter>Engine\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Engine\Scene\Camera.h">
+      <Filter>Engine\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Engine\Rendering\Mesh.h">
+      <Filter>Engine\Rendering</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Engine\Rendering\MaterialManager.h">
+      <Filter>Engine\Rendering</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Engine\Rendering\MeshManager.h">
+      <Filter>Engine\Rendering</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Engine\Shaders\DepthShader.h">
+      <Filter>Engine\Shaders</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="..\Engine\Shaders\VertexTransform.hlsl">
+      <Filter>Engine\Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Engine\Shaders\PixelDepth.hlsl">
+      <Filter>Engine\Shaders</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>
