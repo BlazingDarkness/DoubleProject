@@ -6,6 +6,7 @@ namespace Render
 {
 	class Mesh
 	{
+	public:
 		///////////////////////////
 		// Construct / destruction
 
@@ -19,13 +20,20 @@ namespace Render
 		//Returns false if failed
 		bool Load(ID3D11Device* pDevice, const std::string& fileName);
 
+		//Sets the mesh's buffers to the directX device
+		void SetBuffers(ID3D11DeviceContext* pDeviceContext);
+
+		//Returns the file name from which the mesh was loaded
+		std::string GetFileName() { return m_FileName; }
+
 	private:
 		ID3D11Buffer* m_pVertexBuffer;
-		ID3D11InputLayout* m_pLayout; //position, normal, UVs etc
 		ID3D11Buffer* m_pIndexBuffer;
 
 		unsigned int m_IndexCount;
 		unsigned int m_VertexCount;
 		unsigned int m_VertexSize;
+
+		std::string m_FileName;
 	};
 }
