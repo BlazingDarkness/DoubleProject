@@ -28,14 +28,4 @@ namespace Scene
 
 		return m_ViewMatrix;
 	}
-
-	gen::CMatrix4x4 Camera::GetProjectionMatrix()
-	{
-		//To do
-	}
-
-	gen::CMatrix4x4 Camera::GetViewProjectionMatrix()
-	{
-		//To do
-	}
 }

@@ -24,9 +24,9 @@ namespace Scene
 
 		gen::CMatrix4x4 GetViewMatrix();
 
-		gen::CMatrix4x4 GetProjectionMatrix();
+		/*gen::CMatrix4x4 GetProjectionMatrix();
 		
-		gen::CMatrix4x4 GetViewProjectionMatrix();
+		gen::CMatrix4x4 GetViewProjectionMatrix();*/
 
 		float GetFOV() { return m_FOV; }
 
