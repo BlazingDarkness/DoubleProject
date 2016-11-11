@@ -17,17 +17,17 @@ namespace Render
 	//Ensures cleanup of any DX stuff
 	Shader::~Shader()
 	{
-		SAFE_DELETE(m_pLayout);
+		SAFE_RELEASE(m_pLayout);
 		switch (m_Type)
 		{
 		case ShaderType::Vertex:
-			SAFE_DELETE(m_pVertexShader);
+			SAFE_RELEASE(m_pVertexShader);
 			break;
 		case ShaderType::Pixel:
-			SAFE_DELETE(m_pPixelShader);
+			SAFE_RELEASE(m_pPixelShader);
 			break;
 		case ShaderType::Compute:
-			SAFE_DELETE(m_pComputeShader);
+			SAFE_RELEASE(m_pComputeShader);
 			break;
 		}
 	}
@@ -35,6 +35,7 @@ namespace Render
 	//Initialises the shader and returns whether it was successful
 	bool Shader::Init(ID3D11Device* pDevice, const ShaderType type, const std::string& shaderFile)
 	{
+		HRESULT hr;
 		m_Type = type;
 
 		std::vector<char> byteCode;
@@ -53,7 +54,8 @@ namespace Render
 		switch (type)
 		{
 		case ShaderType::Vertex:
-			HRESULT hr = pDevice->CreateVertexShader(byteCode.data(), static_cast<SIZE_T>(byteCode.size()), nullptr, &m_pVertexShader);
+		{
+			hr = pDevice->CreateVertexShader(byteCode.data(), static_cast<SIZE_T>(byteCode.size()), nullptr, &m_pVertexShader);
 			if (FAILED(hr)) return false;
 
 			D3D11_INPUT_ELEMENT_DESC inputLayout[] =
@@ -63,16 +65,17 @@ namespace Render
 				{ "NORMAL",     0,     DXGI_FORMAT_R32G32B32_FLOAT,  0,    12,     D3D11_INPUT_PER_VERTEX_DATA,  0 },
 				{ "TEXCOORD",   0,     DXGI_FORMAT_R32G32_FLOAT,     0,    24,     D3D11_INPUT_PER_VERTEX_DATA,  0 }
 			};
-			pDevice->CreateInputLayout(inputLayout, 3, byteCode.data(), static_cast<SIZE_T>(byteCode.size()), &m_pLayout);
+			hr = pDevice->CreateInputLayout(inputLayout, 3, byteCode.data(), static_cast<SIZE_T>(byteCode.size()), &m_pLayout);
+			if (FAILED(hr)) return false;
+		}
 			break;
-
 		case ShaderType::Pixel:
-			HRESULT hr = pDevice->CreatePixelShader(byteCode.data(), static_cast<SIZE_T>(byteCode.size()), nullptr, &m_pPixelShader);
+			hr = pDevice->CreatePixelShader(byteCode.data(), static_cast<SIZE_T>(byteCode.size()), nullptr, &m_pPixelShader);
 			if (FAILED(hr)) return false;
 			break;
 
 		case ShaderType::Compute:
-			HRESULT hr = pDevice->CreateComputeShader(byteCode.data(), static_cast<SIZE_T>(byteCode.size()), nullptr, &m_pComputeShader);
+			hr = pDevice->CreateComputeShader(byteCode.data(), static_cast<SIZE_T>(byteCode.size()), nullptr, &m_pComputeShader);
 			if (FAILED(hr)) return false;
 			break;
 		}

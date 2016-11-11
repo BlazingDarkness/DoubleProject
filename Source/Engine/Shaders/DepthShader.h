@@ -1,9 +1,7 @@
 #pragma once
 #include "Rendering\DXIncludes.h"
-#include "CVector4.h"
-#include "CMatrix4x4.h"
+#include "Shaders\Shader.h"
 #include <string>
-#include <vector>
 
 namespace Render
 {
@@ -27,14 +25,13 @@ namespace Render
 		// Sets
 
 		//Sets the shaders to the device context
-		void SetShader(ID3D11DeviceContext* pContext);
+		void SetTechnique(ID3D11DeviceContext* pContext);
 
 		//Runs the shader
 		void Run();
 
 	private:
-		ID3D11VertexShader* m_pVertexShader;
-		ID3D11PixelShader* m_pPixelShader;
-		ID3D11InputLayout* m_pLayout;
+		Shader* m_pVertexShader;
+		Shader* m_pPixelShader;
 	};
 }

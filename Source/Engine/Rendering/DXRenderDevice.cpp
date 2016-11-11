@@ -1,4 +1,4 @@
-#include "DXRenderDevice.h"
+#include "Rendering\DXRenderDevice.h"
 
 namespace Render
 {
@@ -14,7 +14,9 @@ namespace Render
 	//Releases all memory used
 	DXRenderDevice::~DXRenderDevice()
 	{
-		if(m_pManager != nullptr) delete m_pManager;
+		if(m_pSceneManager != nullptr) delete m_pSceneManager;
+		if (m_pModelShader != nullptr) delete m_pModelShader;
+		if (m_pModelShader != nullptr) delete m_pDepthShader;
 
 		// Before shutting down set to windowed mode or when you release the swap chain it will throw an exception.
 		if (m_pSwapChain)
@@ -22,6 +24,7 @@ namespace Render
 			m_pSwapChain->SetFullscreenState(false, NULL);
 		}
 
+		SAFE_RELEASE(m_pMatrixBuffer);
 		SAFE_RELEASE(m_pRasterState);
 		SAFE_RELEASE(m_pDepthStencilView);
 		SAFE_RELEASE(m_pDepthStencilState);
@@ -87,11 +90,12 @@ namespace Render
 
 		// Create a texture (bitmap) to use for a depth buffer
 		D3D11_TEXTURE2D_DESC descDepth;
+		ZeroMemory(&descDepth, sizeof(descDepth));
 		descDepth.Width = m_ScreenWidth;
 		descDepth.Height = m_ScreenHeight;
 		descDepth.MipLevels = 1;
 		descDepth.ArraySize = 1;
-		descDepth.Format = DXGI_FORMAT_D32_FLOAT;
+		descDepth.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
 		descDepth.SampleDesc.Count = 1;
 		descDepth.SampleDesc.Quality = 0;
 		descDepth.Usage = D3D11_USAGE_DEFAULT;
@@ -139,7 +143,8 @@ namespace Render
 
 		// Create the depth stencil view, i.e. indicate that the texture just created is to be used as a depth buffer
 		D3D11_DEPTH_STENCIL_VIEW_DESC descDSV;
-		descDSV.Format = descDepth.Format;
+		ZeroMemory(&descDSV, sizeof(descDSV));
+		descDSV.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
 		descDSV.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
 		descDSV.Texture2D.MipSlice = 0;
 		hr = m_pDevice->CreateDepthStencilView(m_pDepthStencilBuffer, &descDSV, &m_pDepthStencilView);
@@ -150,6 +155,7 @@ namespace Render
 
 		// Setup the raster description which will determine how and what polygons will be drawn.
 		D3D11_RASTERIZER_DESC descRaster;
+		ZeroMemory(&descRaster, sizeof(descRaster));
 		descRaster.AntialiasedLineEnable = false;
 		descRaster.CullMode = D3D11_CULL_BACK;
 		descRaster.DepthBias = 0;
@@ -170,13 +176,44 @@ namespace Render
 
 		// Setup the viewport - defines which part of the window we will render to, almost always the whole window
 		D3D11_VIEWPORT vp;
-		vp.Width = m_ScreenWidth;
-		vp.Height = m_ScreenHeight;
+		ZeroMemory(&vp, sizeof(vp));
+		vp.Width = static_cast<float>(m_ScreenWidth);
+		vp.Height = static_cast<float>(m_ScreenHeight);
 		vp.MinDepth = 0.0f;
 		vp.MaxDepth = 1.0f;
 		vp.TopLeftX = 0;
 		vp.TopLeftY = 0;
 		m_pDeviceContext->RSSetViewports(1, &vp);
+
+		m_pModelShader = new ModelShader;
+		if (!m_pModelShader->Init(m_pDevice, ".\\ModelVS.cso", ".\\ModelPS.cso"))
+		{
+			return false;
+		}
+
+		m_pDepthShader = new DepthShader;
+		if (!m_pDepthShader->Init(m_pDevice, ".\\DepthVS.cso", ".\\DepthPS.cso"))
+		{
+			return false;
+		}
+
+
+		D3D11_BUFFER_DESC cbDesc;
+		cbDesc.ByteWidth = 192; // Constant buffer data is packed into float4 data - must round up to size of float4 (16)
+		cbDesc.Usage = D3D11_USAGE_DYNAMIC;
+		cbDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+		cbDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE; // CPU is only going to write to the constants (not read them)
+		cbDesc.MiscFlags = 0;
+		if (FAILED(m_pDevice->CreateBuffer(&cbDesc, NULL, &m_pMatrixBuffer)))
+		{
+			return false;
+		}
+
+		m_pDeviceContext->VSSetConstantBuffers(0, 1, &m_pMatrixBuffer);
+
+
+		m_pMeshManager = new MeshManager(m_pDevice);
+		m_pSceneManager = new Scene::Manager(m_pMeshManager);
 
 		return true;
 	}
@@ -188,6 +225,79 @@ namespace Render
 	//Renders the scene
 	void DXRenderDevice::RenderScene()
 	{
+		ClearScreen();
 
+		///////////////////////////
+		// Depth pre pass
+
+		//m_Matrices.view = m_pSceneManager->GetActiveCamera()->GetViewMatrix();
+		//m_Matrices.projection = 
+
+		//D3D11_MAPPED_SUBRESOURCE s;
+		//m_pDeviceContext->Map(m_pMatrixBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &s);
+
+		m_pDepthShader->SetTechnique(m_pDeviceContext);
+		SetConstantBuffer(m_pMatrixBuffer, 0, &m_Matrices, sizeof(MatrixBuffer), ShaderType::Vertex);
+
+
+		///////////////////////////
+		// Lighting pass
+
+		m_pModelShader->SetShader(m_pDeviceContext);
+
+
+		m_pSwapChain->Present(0, 0);
+	}
+
+
+	///////////////////////////
+	// Render steps
+
+	//Resets the back buffer and depth buffers
+	void DXRenderDevice::ClearScreen()
+	{
+		float ClearColor[4] = { 0.2f, 0.2f, 0.3f, 1.0f };
+		
+		m_pDeviceContext->ClearRenderTargetView(m_pRenderTargetView, ClearColor);
+
+		m_pDeviceContext->ClearDepthStencilView(m_pDepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
+	}
+
+
+	//Copys the data to a constant buffer
+	void DXRenderDevice::SetConstantBuffer(ID3D11Buffer* buffer, unsigned int bufferIndex, void* data, unsigned int dataSize, ShaderType sType)
+	{
+		//This function's code was taken in part from Rastertek's tutorial dx11s2tut04
+		//Then heavily simplified for general use
+
+		HRESULT hr;
+		D3D11_MAPPED_SUBRESOURCE resource;
+
+		// Lock the constant buffer so it can be written to.
+		hr = m_pDeviceContext->Map(buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &resource);
+		if (FAILED(hr))
+		{
+			return;
+		}
+
+		// Copy data to the buffer
+		memcpy(resource.pData, data, dataSize);
+
+		// Unlock the constant buffer.
+		m_pDeviceContext->Unmap(buffer, 0);
+
+		// Finanly set the constant buffer in the vertex shader with the updated values.
+		switch (sType)
+		{
+		case ShaderType::Vertex:
+			m_pDeviceContext->VSSetConstantBuffers(bufferIndex, 1, &buffer);
+			break;
+		case ShaderType::Pixel:
+			m_pDeviceContext->PSSetConstantBuffers(bufferIndex, 1, &buffer);
+			break;
+		case ShaderType::Compute:
+			m_pDeviceContext->CSSetConstantBuffers(bufferIndex, 1, &buffer);
+			break;
+		}
 	}
 }

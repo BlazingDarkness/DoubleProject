@@ -1,6 +1,9 @@
 #pragma once
 //#include "IRenderDevice.h"
-#include "DXIncludes.h"
+#include "Rendering\DXIncludes.h"
+#include "Rendering\MeshManager.h"
+#include "Shaders\ModelShader.h"
+#include "Shaders\DepthShader.h"
 #include "Scene\Manager.h"
 
 namespace Render
@@ -31,14 +34,24 @@ namespace Render
 		///////////////////////////
 		// Gets & Sets
 
-		Scene::Manager* GetSceneManager() { return m_pManager; }
+		Scene::Manager* GetSceneManager() { return m_pSceneManager; }
 
 		unsigned int GetScreenWidth() { return m_ScreenWidth; }
 
-		unsigned int GetScreenWidth() { return m_ScreenHeight; }
+		unsigned int GetScreenHeight() { return m_ScreenHeight; }
 
 
 	private:
+		///////////////////////////
+		// Render steps
+
+		//Resets the back buffer and depth buffers
+		void ClearScreen();
+
+		//Copys the data to a constant buffer
+		void SetConstantBuffer(ID3D11Buffer* buffer, unsigned int bufferIndex, void* data, unsigned int dataSize, ShaderType type);
+
+
 		///////////////////////////
 		// Variables
 
@@ -51,9 +64,22 @@ namespace Render
 		ID3D11RasterizerState*	m_pRasterState = NULL;
 		ID3D11RenderTargetView* m_pRenderTargetView = NULL;
 
+		//Constant Buffers
+		ID3D11Buffer* m_pMatrixBuffer = NULL;
+
 		unsigned int m_ScreenWidth;
 		unsigned int m_ScreenHeight;
 
-		Scene::Manager* m_pManager = nullptr;
+		Scene::Manager* m_pSceneManager = nullptr;
+		MeshManager* m_pMeshManager = nullptr;
+		ModelShader* m_pModelShader = nullptr;
+		DepthShader* m_pDepthShader = nullptr;
+
+		struct MatrixBuffer
+		{
+			gen::CMatrix4x4 world;
+			gen::CMatrix4x4 view;
+			gen::CMatrix4x4 projection;
+		} m_Matrices;
 	};
 }
