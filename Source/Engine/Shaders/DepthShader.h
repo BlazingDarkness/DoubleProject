@@ -1,9 +1,13 @@
 #pragma once
-#include "Rendering\IShader.h"
+#include "Rendering\DXIncludes.h"
+#include "CVector4.h"
+#include "CMatrix4x4.h"
+#include <string>
+#include <vector>
 
 namespace Render
 {
-	class DepthShader : public IShader
+	class DepthShader
 	{
 	public:
 		///////////////////////////
@@ -16,12 +20,17 @@ namespace Render
 		~DepthShader();
 
 		//Initialises the shader and returns whether it was successful
-		virtual bool Init(ID3D11Device* pDevice);
+		bool Init(ID3D11Device* pDevice, const std::string& vertexShader, const std::string& pixelShader);
 
-		//Cleans up everything used by the shader
-		virtual void Shutdown();
 
-		virtual bool Render();
+		///////////////////////////
+		// Sets
+
+		//Sets the shaders to the device context
+		void SetShader(ID3D11DeviceContext* pContext);
+
+		//Runs the shader
+		void Run();
 
 	private:
 		ID3D11VertexShader* m_pVertexShader;

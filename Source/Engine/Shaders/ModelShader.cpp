@@ -1,4 +1,4 @@
-#include "Shaders\DepthShader.h"
+#include "Shaders\ModelShader.h"
 #include <fstream>
 
 namespace Render
@@ -7,7 +7,7 @@ namespace Render
 	// Construct / destruction
 
 	//Sets all defaults
-	DepthShader::DepthShader()
+	ModelShader::ModelShader()
 	{
 		m_pLayout = NULL;
 		m_pVertexShader = NULL;
@@ -15,7 +15,7 @@ namespace Render
 	}
 
 	//Ensures cleanup of any DX stuff
-	DepthShader::~DepthShader()
+	ModelShader::~ModelShader()
 	{
 		SAFE_RELEASE(m_pLayout);
 		SAFE_RELEASE(m_pVertexShader);
@@ -24,10 +24,8 @@ namespace Render
 
 	//Initialises the shader and returns whether it was successful
 	//Returns true if successful
-	bool DepthShader::Init(ID3D11Device* pDevice, const std::string& vertexShader, const std::string& pixelShader)
+	bool ModelShader::Init(ID3D11Device* pDevice, const std::string& vertexShader, const std::string& pixelShader)
 	{
-		std::vector<char> mByteCode;
-
 		//Open compiled vertex shader file
 		std::ifstream VSFile(vertexShader, std::ios::in | std::ios::binary | std::ios::ate);
 		if (!VSFile.is_open()) return false;
@@ -39,7 +37,7 @@ namespace Render
 		VSFile.read(&mByteCode[0], fileSize);
 		if (VSFile.fail()) return false;
 
-		HRESULT hr = pDevice->CreateVertexShader(mByteCode.data(), static_cast<SIZE_T>(mByteCode.size()), nullptr, &m_pVertexShader);
+		HRESULT hr = pDevice->CreateVertexShader(ByteCode(), ByteCodeLength(), nullptr, &m_pVertexShader);
 		if (FAILED(hr)) return false;
 
 		D3D11_INPUT_ELEMENT_DESC inputLayout[] =
@@ -63,18 +61,14 @@ namespace Render
 		PSFile.read(&mByteCode[0], fileSize);
 		if (PSFile.fail()) return false;
 
-		hr = pDevice->CreatePixelShader(mByteCode.data(), static_cast<SIZE_T>(mByteCode.size()), nullptr, &m_pPixelShader);
+		hr = pDevice->CreatePixelShader(ByteCode(), ByteCodeLength(), nullptr, &m_pPixelShader);
 		if (FAILED(hr)) return false;
 
 		return true;
 	}
 
-
-	///////////////////////////
-	// Sets
-
 	//Sets the shaders to the device context
-	void DepthShader::SetShader(ID3D11DeviceContext* pContext)
+	void ModelShader::SetShader(ID3D11DeviceContext* pContext)
 	{
 		pContext->PSSetShader(m_pPixelShader, NULL, 0);
 		pContext->VSSetShader(m_pVertexShader, NULL, 0);
@@ -82,7 +76,7 @@ namespace Render
 	}
 
 	//Runs the shader
-	void DepthShader::Run()
+	void ModelShader::Run()
 	{
 
 	}
