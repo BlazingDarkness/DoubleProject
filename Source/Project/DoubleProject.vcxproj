@@ -21,8 +21,13 @@
   <ItemGroup>
     <ClCompile Include="..\..\3rd Party\CImportXFile.cpp" />
     <ClCompile Include="..\..\3rd Party\Common\CFatalException.cpp" />
+    <ClCompile Include="..\..\3rd Party\Common\CTimer.cpp" />
+    <ClCompile Include="..\..\3rd Party\Common\Input.cpp" />
     <ClCompile Include="..\..\3rd Party\Common\MSDefines.cpp" />
     <ClCompile Include="..\..\3rd Party\Common\Utility.cpp" />
+    <ClCompile Include="..\..\3rd Party\DirectXTK\DDSTextureLoader.cpp" />
+    <ClCompile Include="..\..\3rd Party\DirectXTK\pch.cpp" />
+    <ClCompile Include="..\..\3rd Party\DirectXTK\WICTextureLoader.cpp" />
     <ClCompile Include="..\..\3rd Party\Math\BaseMath.cpp" />
     <ClCompile Include="..\..\3rd Party\Math\CMatrix2x2.cpp" />
     <ClCompile Include="..\..\3rd Party\Math\CMatrix3x3.cpp" />
@@ -36,20 +41,36 @@
     <ClCompile Include="..\Engine\Engine.cpp" />
     <ClCompile Include="..\Engine\Rendering\DXRenderDevice.cpp" />
     <ClCompile Include="..\Engine\Rendering\Mesh.cpp" />
+    <ClCompile Include="..\Engine\Rendering\MeshManager.cpp" />
+    <ClCompile Include="..\Engine\Rendering\TextureManager.cpp" />
     <ClCompile Include="..\Engine\Scene\Camera.cpp" />
     <ClCompile Include="..\Engine\Scene\Light.cpp" />
     <ClCompile Include="..\Engine\Scene\Manager.cpp" />
+    <ClCompile Include="..\Engine\Scene\Model.cpp" />
     <ClCompile Include="..\Engine\Scene\Node.cpp" />
     <ClCompile Include="..\Engine\Shaders\DepthShader.cpp" />
+    <ClCompile Include="..\Engine\Shaders\ModelShader.cpp" />
+    <ClCompile Include="..\Engine\Shaders\Shader.cpp" />
+    <ClCompile Include="..\Example\main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\3rd Party\CImportXFile.h" />
     <ClInclude Include="..\..\3rd Party\Colour.h" />
     <ClInclude Include="..\..\3rd Party\Common\CFatalException.h" />
+    <ClInclude Include="..\..\3rd Party\Common\CTimer.h" />
     <ClInclude Include="..\..\3rd Party\Common\Error.h" />
     <ClInclude Include="..\..\3rd Party\Common\GenDefines.h" />
+    <ClInclude Include="..\..\3rd Party\Common\Input.h" />
     <ClInclude Include="..\..\3rd Party\Common\MSDefines.h" />
+    <ClInclude Include="..\..\3rd Party\Common\Resource.h" />
     <ClInclude Include="..\..\3rd Party\Common\Utility.h" />
+    <ClInclude Include="..\..\3rd Party\DirectXTK\dds.h" />
+    <ClInclude Include="..\..\3rd Party\DirectXTK\DDSTextureLoader.h" />
+    <ClInclude Include="..\..\3rd Party\DirectXTK\DirectXHelpers.h" />
+    <ClInclude Include="..\..\3rd Party\DirectXTK\LoaderHelpers.h" />
+    <ClInclude Include="..\..\3rd Party\DirectXTK\pch.h" />
+    <ClInclude Include="..\..\3rd Party\DirectXTK\PlatformHelpers.h" />
+    <ClInclude Include="..\..\3rd Party\DirectXTK\WICTextureLoader.h" />
     <ClInclude Include="..\..\3rd Party\Math\BaseMath.h" />
     <ClInclude Include="..\..\3rd Party\Math\CMatrix2x2.h" />
     <ClInclude Include="..\..\3rd Party\Math\CMatrix3x3.h" />
@@ -71,19 +92,37 @@
     <ClInclude Include="..\Engine\Rendering\MaterialManager.h" />
     <ClInclude Include="..\Engine\Rendering\Mesh.h" />
     <ClInclude Include="..\Engine\Rendering\MeshManager.h" />
+    <ClInclude Include="..\Engine\Rendering\TextureManager.h" />
     <ClInclude Include="..\Engine\Scene\Camera.h" />
     <ClInclude Include="..\Engine\Scene\Light.h" />
     <ClInclude Include="..\Engine\Scene\Manager.h" />
+    <ClInclude Include="..\Engine\Scene\Model.h" />
     <ClInclude Include="..\Engine\Scene\Node.h" />
     <ClInclude Include="..\Engine\Shaders\DepthShader.h" />
+    <ClInclude Include="..\Engine\Shaders\ModelShader.h" />
+    <ClInclude Include="..\Engine\Shaders\Shader.h" />
     <ClInclude Include="..\Interface\IEngine.h" />
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="..\Engine\Shaders\PixelDepth.hlsl">
+    <FxCompile Include="..\Engine\Shaders\ModelPS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">5.0</ShaderModel>
+    </FxCompile>
+    <FxCompile Include="..\Engine\Shaders\ModelVS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">5.0</ShaderModel>
+    </FxCompile>
+    <FxCompile Include="..\Engine\Shaders\DepthPS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">5.0</ShaderModel>
     </FxCompile>
-    <FxCompile Include="..\Engine\Shaders\VertexTransform.hlsl">
+    <FxCompile Include="..\Engine\Shaders\DepthVS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Vertex</ShaderType>
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">5.0</ShaderModel>
     </FxCompile>
@@ -141,10 +180,12 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(DXSDK_DIR)Include;</IncludePath>
     <LibraryPath>$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86);$(NETFXKitsDir)Lib\um\x86;$(DXSDK_DIR)Lib\x86;</LibraryPath>
+    <OutDir>..\..\Build\$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(DXSDK_DIR)Include;</IncludePath>
     <LibraryPath>$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86);$(NETFXKitsDir)Lib\um\x86;$(DXSDK_DIR)Lib\x86;</LibraryPath>
+    <OutDir>..\..\Build\$(Configuration)\</OutDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -154,7 +195,7 @@
       <AdditionalIncludeDirectories>..\Engine;..\..\3rd Party\Math;..\..\3rd Party\Common;..\..\3rd Party;..\Interface;C:\Users\mhartley3\Documents\Visual Studio 2015\Projects\DoubleProject\Source\Engine\Rendering;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>d3dxof.lib;dxguid.lib;d3dx9d.lib;d3d9.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>winmm.lib;d3dxof.lib;dxguid.lib;d3dx9d.lib;d3d9.lib;d3d11.lib;d3dx11d.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -176,6 +217,7 @@
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalDependencies>winmm.lib;d3dxof.lib;dxguid.lib;d3dx9d.lib;d3d9.lib;d3d11.lib;d3dx11d.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">

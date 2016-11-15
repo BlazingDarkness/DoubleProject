@@ -25,6 +25,9 @@
     <Filter Include="Engine\Shaders">
       <UniqueIdentifier>{30b5315b-6caf-4505-bc96-613789cc69f0}</UniqueIdentifier>
     </Filter>
+    <Filter Include="3rd Party\DirectXTK">
+      <UniqueIdentifier>{fe93148d-3eb0-4190-84e0-678bcd9c1396}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\3rd Party\Common\CFatalException.cpp">
@@ -87,11 +90,44 @@
     <ClCompile Include="..\Engine\Scene\Camera.cpp">
       <Filter>Engine\Scene</Filter>
     </ClCompile>
+    <ClCompile Include="..\Engine\Rendering\Mesh.cpp">
+      <Filter>Engine\Rendering</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Engine\Scene\Model.cpp">
+      <Filter>Engine\Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Engine\Rendering\TextureManager.cpp">
+      <Filter>Engine\Rendering</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Engine\Rendering\MeshManager.cpp">
+      <Filter>Engine\Rendering</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Engine\Shaders\ModelShader.cpp">
+      <Filter>Engine\Shaders</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rd Party\DirectXTK\WICTextureLoader.cpp">
+      <Filter>3rd Party\DirectXTK</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rd Party\DirectXTK\pch.cpp">
+      <Filter>3rd Party\DirectXTK</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rd Party\DirectXTK\DDSTextureLoader.cpp">
+      <Filter>3rd Party\DirectXTK</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rd Party\Common\Input.cpp">
+      <Filter>3rd Party\Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\3rd Party\Common\CTimer.cpp">
+      <Filter>3rd Party\Common</Filter>
+    </ClCompile>
     <ClCompile Include="..\Engine\Shaders\DepthShader.cpp">
       <Filter>Engine\Shaders</Filter>
     </ClCompile>
-    <ClCompile Include="..\Engine\Rendering\Mesh.cpp">
-      <Filter>Engine\Rendering</Filter>
+    <ClCompile Include="..\Engine\Shaders\Shader.cpp">
+      <Filter>Engine\Shaders</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Example\main.cpp">
+      <Filter>Example</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -194,15 +230,63 @@
     <ClInclude Include="..\Engine\Rendering\MeshManager.h">
       <Filter>Engine\Rendering</Filter>
     </ClInclude>
+    <ClInclude Include="..\Engine\Scene\Model.h">
+      <Filter>Engine\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Engine\Rendering\TextureManager.h">
+      <Filter>Engine\Rendering</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Engine\Shaders\ModelShader.h">
+      <Filter>Engine\Shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rd Party\DirectXTK\WICTextureLoader.h">
+      <Filter>3rd Party\DirectXTK</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rd Party\DirectXTK\PlatformHelpers.h">
+      <Filter>3rd Party\DirectXTK</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rd Party\DirectXTK\pch.h">
+      <Filter>3rd Party\DirectXTK</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rd Party\DirectXTK\LoaderHelpers.h">
+      <Filter>3rd Party\DirectXTK</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rd Party\DirectXTK\DirectXHelpers.h">
+      <Filter>3rd Party\DirectXTK</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rd Party\DirectXTK\dds.h">
+      <Filter>3rd Party\DirectXTK</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rd Party\DirectXTK\DDSTextureLoader.h">
+      <Filter>3rd Party\DirectXTK</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rd Party\Common\Input.h">
+      <Filter>3rd Party\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rd Party\Common\Resource.h">
+      <Filter>3rd Party\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\3rd Party\Common\CTimer.h">
+      <Filter>3rd Party\Common</Filter>
+    </ClInclude>
     <ClInclude Include="..\Engine\Shaders\DepthShader.h">
+      <Filter>Engine\Shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Engine\Shaders\Shader.h">
       <Filter>Engine\Shaders</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="..\Engine\Shaders\VertexTransform.hlsl">
+    <FxCompile Include="..\Engine\Shaders\ModelVS.hlsl">
       <Filter>Engine\Shaders</Filter>
     </FxCompile>
-    <FxCompile Include="..\Engine\Shaders\PixelDepth.hlsl">
+    <FxCompile Include="..\Engine\Shaders\ModelPS.hlsl">
+      <Filter>Engine\Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Engine\Shaders\DepthVS.hlsl">
+      <Filter>Engine\Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Engine\Shaders\DepthPS.hlsl">
       <Filter>Engine\Shaders</Filter>
     </FxCompile>
   </ItemGroup>
