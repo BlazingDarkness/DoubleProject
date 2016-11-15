@@ -51,6 +51,9 @@ namespace Render
 		//Copys the data to a constant buffer
 		void SetConstantBuffer(ID3D11Buffer* buffer, unsigned int bufferIndex, void* data, unsigned int dataSize, ShaderType type);
 
+		//Creates and sets the perspective matrix from a camera
+		void SetPerspectiveMatrix(Scene::Camera* camera);
+
 
 		///////////////////////////
 		// Variables
@@ -65,7 +68,8 @@ namespace Render
 		ID3D11RenderTargetView* m_pRenderTargetView = NULL;
 
 		//Constant Buffers
-		ID3D11Buffer* m_pMatrixBuffer = NULL;
+		ID3D11Buffer* m_pGlobalMatrixBuffer = NULL;
+		ID3D11Buffer* m_pObjMatrixBuffer = NULL;
 
 		unsigned int m_ScreenWidth;
 		unsigned int m_ScreenHeight;
@@ -74,12 +78,5 @@ namespace Render
 		MeshManager* m_pMeshManager = nullptr;
 		ModelShader* m_pModelShader = nullptr;
 		DepthShader* m_pDepthShader = nullptr;
-
-		struct MatrixBuffer
-		{
-			gen::CMatrix4x4 world;
-			gen::CMatrix4x4 view;
-			gen::CMatrix4x4 projection;
-		} m_Matrices;
 	};
 }

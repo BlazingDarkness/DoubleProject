@@ -2,11 +2,15 @@
 ///////////////////////////
 // Globals
 
-cbuffer WorldTransforms : register(b0)
+cbuffer GlobalMatrix : register(b0)
 {
-	float4x4 WorldMatrix;
 	float4x4 ViewMatrix;
 	float4x4 ProjMatrix;
+};
+
+cbuffer ObjectMatrix : register(b1)
+{
+	float4x4 WorldMatrix;
 };
 
 ///////////////////////////

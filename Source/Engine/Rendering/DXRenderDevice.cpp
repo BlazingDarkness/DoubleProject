@@ -2,6 +2,20 @@
 
 namespace Render
 {
+	//Updated once per frame
+	struct AL16 GlobalMatrixBuffer
+	{
+		AL16 gen::CMatrix4x4 view;
+		AL16 gen::CMatrix4x4 projection;
+	} g_GlobalMatrices;
+
+	//Updated once per object
+	struct AL16 ObjectMatrixBuffer
+	{
+		AL16 gen::CMatrix4x4 world;
+	} g_ObjMatrix;
+
+
 	///////////////////////////
 	// Construct / destruction
 
@@ -24,7 +38,8 @@ namespace Render
 			m_pSwapChain->SetFullscreenState(false, NULL);
 		}
 
-		SAFE_RELEASE(m_pMatrixBuffer);
+		SAFE_RELEASE(m_pGlobalMatrixBuffer);
+		SAFE_RELEASE(m_pObjMatrixBuffer);
 		SAFE_RELEASE(m_pRasterState);
 		SAFE_RELEASE(m_pDepthStencilView);
 		SAFE_RELEASE(m_pDepthStencilState);
@@ -199,17 +214,28 @@ namespace Render
 
 
 		D3D11_BUFFER_DESC cbDesc;
-		cbDesc.ByteWidth = 192; // Constant buffer data is packed into float4 data - must round up to size of float4 (16)
+		cbDesc.ByteWidth = sizeof(GlobalMatrixBuffer); // Constant buffer data is packed into float4 data - must round up to size of float4 (16)
 		cbDesc.Usage = D3D11_USAGE_DYNAMIC;
 		cbDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 		cbDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE; // CPU is only going to write to the constants (not read them)
 		cbDesc.MiscFlags = 0;
-		if (FAILED(m_pDevice->CreateBuffer(&cbDesc, NULL, &m_pMatrixBuffer)))
+		if (FAILED(m_pDevice->CreateBuffer(&cbDesc, NULL, &m_pGlobalMatrixBuffer)))
 		{
 			return false;
 		}
 
-		m_pDeviceContext->VSSetConstantBuffers(0, 1, &m_pMatrixBuffer);
+		cbDesc.ByteWidth = sizeof(ObjectMatrixBuffer); // Constant buffer data is packed into float4 data - must round up to size of float4 (16)
+		cbDesc.Usage = D3D11_USAGE_DYNAMIC;
+		cbDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+		cbDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE; // CPU is only going to write to the constants (not read them)
+		cbDesc.MiscFlags = 0;
+		if (FAILED(m_pDevice->CreateBuffer(&cbDesc, NULL, &m_pObjMatrixBuffer)))
+		{
+			return false;
+		}
+
+		m_pDeviceContext->VSSetConstantBuffers(0, 1, &m_pGlobalMatrixBuffer);
+		m_pDeviceContext->VSSetConstantBuffers(1, 1, &m_pObjMatrixBuffer);
 
 
 		m_pMeshManager = new MeshManager(m_pDevice);
@@ -228,22 +254,26 @@ namespace Render
 		ClearScreen();
 
 		///////////////////////////
+		// Pre Render
+
+		g_GlobalMatrices.view = m_pSceneManager->GetActiveCamera()->GetViewMatrix();
+		SetPerspectiveMatrix(m_pSceneManager->GetActiveCamera());
+
+		///////////////////////////
 		// Depth pre pass
 
-		//m_Matrices.view = m_pSceneManager->GetActiveCamera()->GetViewMatrix();
-		//m_Matrices.projection = 
-
-		//D3D11_MAPPED_SUBRESOURCE s;
-		//m_pDeviceContext->Map(m_pMatrixBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &s);
 
 		m_pDepthShader->SetTechnique(m_pDeviceContext);
-		SetConstantBuffer(m_pMatrixBuffer, 0, &m_Matrices, sizeof(MatrixBuffer), ShaderType::Vertex);
+		SetConstantBuffer(m_pGlobalMatrixBuffer, 0, &g_GlobalMatrices, sizeof(GlobalMatrixBuffer), ShaderType::Vertex);
+		SetConstantBuffer(m_pObjMatrixBuffer, 1, &g_ObjMatrix, sizeof(ObjectMatrixBuffer), ShaderType::Vertex);
 
 
 		///////////////////////////
 		// Lighting pass
 
 		m_pModelShader->SetShader(m_pDeviceContext);
+		SetConstantBuffer(m_pGlobalMatrixBuffer, 0, &g_GlobalMatrices, sizeof(GlobalMatrixBuffer), ShaderType::Vertex);
+		SetConstantBuffer(m_pObjMatrixBuffer, 1, &g_ObjMatrix, sizeof(ObjectMatrixBuffer), ShaderType::Vertex);
 
 
 		m_pSwapChain->Present(0, 0);
@@ -299,5 +329,25 @@ namespace Render
 			m_pDeviceContext->CSSetConstantBuffers(bufferIndex, 1, &buffer);
 			break;
 		}
+	}
+
+	//Creates and sets the perspective matrix from a camera
+	void DXRenderDevice::SetPerspectiveMatrix(Scene::Camera* camera)
+	{
+		g_GlobalMatrices.projection.MakeIdentity();
+
+		//Formula taken from D3DXMatrixPerspectiveFovLH
+
+		float ratio = static_cast<float>(m_ScreenWidth) / static_cast<float>(m_ScreenHeight);
+		float yScale = 1.0f / gen::Tan(gen::ToRadians(camera->GetFOV()) * 0.5f);
+		float xScale = yScale / ratio;
+
+		g_GlobalMatrices.projection.e00 = yScale;
+		g_GlobalMatrices.projection.e11 = xScale;
+		g_GlobalMatrices.projection.e22 = camera->GetFarClip() / (camera->GetFarClip() - camera->GetNearClip());
+		g_GlobalMatrices.projection.e32 = (camera->GetFarClip() * (-camera->GetNearClip())) / (camera->GetFarClip() - camera->GetNearClip());
+		g_GlobalMatrices.projection.e23 = 1.0f;
+		g_GlobalMatrices.projection.e33 = 0.0f;
+
 	}
 }
