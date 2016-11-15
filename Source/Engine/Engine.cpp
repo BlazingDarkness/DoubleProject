@@ -1,13 +1,124 @@
 #include "Engine.h"
 #include "Input.h"
 #include "Resource.h"
-#include "CTimer.h"
 #include <windows.h>
 #include <windowsx.h>
 
 
 //Functions
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
+
+///////////////////////////
+// Static variables
+Engine* Engine::m_pEngine = nullptr;
+MSG Engine::msg = {0};
+
+
+///////////////////////////
+// Intialisation
+
+//Initialises the engine
+//Returns false if failed
+bool Engine::Init(HINSTANCE hInstance, int nCmdShow)
+{
+	//Destroy existing engine
+	if (m_pEngine != nullptr)
+	{
+		m_pEngine->ShutDown();
+	}
+
+	m_pEngine = new Engine();
+
+	if (!m_pEngine->InitEngine(hInstance, nCmdShow))
+	{
+		m_pEngine->ShutDown();
+		return false;
+	}
+
+	return true;
+}
+
+//Manages input etc since last frame
+//Returns time delta since last render call
+float Engine::Update()
+{
+	//If no engine exists
+	if (m_pEngine == nullptr) return 0.0f;
+
+	float delta = m_pEngine->m_Timer.GetLapTime();
+	
+	// Main message loop
+	// First check to see if there are any messages that need to be processed for the window (window resizing, minimizing, whatever)
+	// If not then the window is idle and the D3D rendering occurs. This is in a loop. So the window is rendered over and over, as fast as
+	// possible as long as we are not manipulating the window in some way
+	while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+	{
+		TranslateMessage(&msg);
+		DispatchMessage(&msg);
+	}
+
+	if (WM_QUIT == msg.message)
+	{
+		ShutDown();
+	}
+	else if (KeyHit(Key_Escape)) // Allow user to quit with escape key
+	{
+		ShutDown();
+	}
+
+	return delta;
+}
+
+//Renders the next frame
+void Engine::Render()
+{
+	//If no engine exists
+	if (m_pEngine == nullptr) return;
+
+	m_pEngine->m_pRenderDevice->RenderScene();
+}
+
+//Deletes all contents and data used by the engine
+void Engine::ShutDown()
+{
+	if (m_pEngine == nullptr) return;
+
+	delete m_pEngine;
+	m_pEngine = nullptr;
+}
+
+
+///////////////////////////
+// Gets
+
+//Returns a pointer to the mesh manager used in the engine
+Render::MeshManager* Engine::MeshManager()
+{
+	if (m_pEngine == nullptr) return nullptr;
+
+	return m_pEngine->m_pMeshManager;
+}
+
+//Returns a pointer to the scene manager used in the engine
+Scene::Manager* Engine::SceneManager()
+{
+	if (m_pEngine == nullptr) return nullptr;
+
+	return m_pEngine->m_pSceneManager;
+}
+
+//Returns false if there is no engine currently running
+bool Engine::IsRunning()
+{
+	return (m_pEngine != nullptr && m_pEngine->m_Initialised);
+}
+
+//Returns the most recent message acted upon by the engine
+MSG Engine::LastMessage()
+{
+	return msg;
+}
+
 
 ///////////////////////////
 // Construct / destruction
@@ -21,17 +132,23 @@ Engine::Engine()
 //Destroys engine
 Engine::~Engine()
 {
-	if (m_pSceneManager) delete m_pSceneManager;
 	if (m_pRenderDevice) delete m_pRenderDevice;
+
+	m_pRenderDevice = nullptr;
+	m_pMeshManager = nullptr;
+	m_pSceneManager = nullptr;
+
+	if (m_hWnd != NULL)
+	{
+		DestroyWindow(m_hWnd);
+		m_hWnd = NULL;
+	}
 }
 
 
-///////////////////////////
-// Intialisation
-
 //Initialises the engine
 //Returns false if failed
-bool Engine::Init(HINSTANCE hInstance, int nCmdShow)
+bool Engine::InitEngine(HINSTANCE hInstance, int nCmdShow)
 {
 	//Create Window
 	if (!InitWindow(hInstance, nCmdShow))
@@ -43,50 +160,102 @@ bool Engine::Init(HINSTANCE hInstance, int nCmdShow)
 	m_pRenderDevice = new Render::DXRenderDevice();
 	if (!m_pRenderDevice->Init(m_hWnd))
 	{
-		delete m_pRenderDevice;
+		SAFE_DELETE(m_pRenderDevice);
 		return false;
 	}
 
+	m_pMeshManager = m_pRenderDevice->GetMeshManager();
+	m_pSceneManager = m_pRenderDevice->GetSceneManager();
+
 	// Initialise simple input functions (in Input.cpp) - not DirectX
 	InitInput();
+
+	m_Timer.Start();
+
+	m_Initialised = true;
+
+	return true;
 }
 
-MSG Engine::Start()
-{
-	// Initialise a timer class (in CTimer.h/.cpp, not part of DirectX). It's like a stopwatch - start it counting now
-	CTimer Timer;
-	Timer.Start();
+
+///////////////////////////
+// Intialisation
+
+//Initialises the engine
+////Returns false if failed
+//bool Engine::Init(HINSTANCE hInstance, int nCmdShow)
+//{
+//	//Create Window
+//	if (!InitWindow(hInstance, nCmdShow))
+//	{
+//		return false;
+//	}
+//
+//	//Create render device
+//	m_pRenderDevice = new Render::DXRenderDevice();
+//	if (!m_pRenderDevice->Init(m_hWnd))
+//	{
+//		SAFE_DELETE(m_pRenderDevice);
+//		return false;
+//	}
+//
+//	m_pMeshManager = m_pRenderDevice->GetMeshManager();
+//	m_pSceneManager = m_pRenderDevice->GetSceneManager();
+//
+//	// Initialise simple input functions (in Input.cpp) - not DirectX
+//	InitInput();
+//
+//	return true;
+//}
+//
+//MSG Engine::Start()
+//{
+//	// Initialise a timer class (in CTimer.h/.cpp, not part of DirectX). It's like a stopwatch - start it counting now
+//	CTimer Timer;
+//	Timer.Start();
+//
+//	m_pMeshManager->LoadMesh("..\\..\\Media\\Teapot.x");
+//
+//
+//	// Main message loop
+//	MSG msg = { 0 };
+//	while (WM_QUIT != msg.message)
+//	{
+//		// First check to see if there are any messages that need to be processed for the window (window resizing, minimizing, whatever)
+//		// If not then the window is idle and the D3D rendering occurs. This is in a loop. So the window is rendered over and over, as fast as
+//		// possible as long as we are not manipulating the window in some way
+//		if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+//		{
+//			TranslateMessage(&msg);
+//			DispatchMessage(&msg);
+//		}
+//		else // Otherwise render
+//		{
+//			m_pRenderDevice->RenderScene();
+//
+//			// Get the time passed since the last frame (since the last time this line was reached) - used so the rendering and update can be
+//			// synchronised to real time and won't be dependent on machine speed
+//			float frameTime = Timer.GetLapTime();
+//			//demo->UpdateScene(frameTime);
+//
+//			// Allow user to quit with escape key
+//			if (KeyHit(Key_Escape))
+//			{
+//				DestroyWindow(m_hWnd);
+//			}
+//		}
+//	}
+//	return msg;
+//}
+//
+////Manages input etc since last frame
+////Returns time delta since last render call
+//float Update();
+//
+////Renders the next frame
+//void Render();
 
 
-	// Main message loop
-	MSG msg = { 0 };
-	while (WM_QUIT != msg.message)
-	{
-		// First check to see if there are any messages that need to be processed for the window (window resizing, minimizing, whatever)
-		// If not then the window is idle and the D3D rendering occurs. This is in a loop. So the window is rendered over and over, as fast as
-		// possible as long as we are not manipulating the window in some way
-		if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
-		{
-			TranslateMessage(&msg);
-			DispatchMessage(&msg);
-		}
-		else // Otherwise render
-		{
-			m_pRenderDevice->RenderScene();
-
-			// Get the time passed since the last frame (since the last time this line was reached) - used so the rendering and update can be
-			// synchronised to real time and won't be dependent on machine speed
-			float frameTime = Timer.GetLapTime();
-			//demo->UpdateScene(frameTime);
-
-			// Allow user to quit with escape key
-			if (KeyHit(Key_Escape))
-			{
-				DestroyWindow(m_hWnd);
-			}
-		}
-	}
-}
 
 
 //Creates window
@@ -123,24 +292,6 @@ bool Engine::InitWindow(HINSTANCE hInstance, int nCmdShow)
 	ShowWindow(m_hWnd, nCmdShow);
 
 	return true;
-}
-
-int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int nCmdShow)
-{
-	Engine* engine = new Engine();
-
-	// Initialise everything in turn
-	if (!(engine->Init(hInstance, nCmdShow)))
-	{
-		delete engine;
-		return 0;
-	}
-
-	MSG msg = engine->Start();
-
-	delete engine;
-
-	return (int)msg.wParam;
 }
 
 //--------------------------------------------------------------------------------------

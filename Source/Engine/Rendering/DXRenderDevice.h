@@ -36,6 +36,8 @@ namespace Render
 
 		Scene::Manager* GetSceneManager() { return m_pSceneManager; }
 
+		MeshManager* GetMeshManager() { return m_pMeshManager; }
+
 		unsigned int GetScreenWidth() { return m_ScreenWidth; }
 
 		unsigned int GetScreenHeight() { return m_ScreenHeight; }
