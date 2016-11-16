@@ -57,6 +57,7 @@ float Engine::Update()
 		DispatchMessage(&msg);
 	}
 
+	//Shutdown if requested to do so my windows
 	if (WM_QUIT == msg.message)
 	{
 		ShutDown();
@@ -176,86 +177,6 @@ bool Engine::InitEngine(HINSTANCE hInstance, int nCmdShow)
 
 	return true;
 }
-
-
-///////////////////////////
-// Intialisation
-
-//Initialises the engine
-////Returns false if failed
-//bool Engine::Init(HINSTANCE hInstance, int nCmdShow)
-//{
-//	//Create Window
-//	if (!InitWindow(hInstance, nCmdShow))
-//	{
-//		return false;
-//	}
-//
-//	//Create render device
-//	m_pRenderDevice = new Render::DXRenderDevice();
-//	if (!m_pRenderDevice->Init(m_hWnd))
-//	{
-//		SAFE_DELETE(m_pRenderDevice);
-//		return false;
-//	}
-//
-//	m_pMeshManager = m_pRenderDevice->GetMeshManager();
-//	m_pSceneManager = m_pRenderDevice->GetSceneManager();
-//
-//	// Initialise simple input functions (in Input.cpp) - not DirectX
-//	InitInput();
-//
-//	return true;
-//}
-//
-//MSG Engine::Start()
-//{
-//	// Initialise a timer class (in CTimer.h/.cpp, not part of DirectX). It's like a stopwatch - start it counting now
-//	CTimer Timer;
-//	Timer.Start();
-//
-//	m_pMeshManager->LoadMesh("..\\..\\Media\\Teapot.x");
-//
-//
-//	// Main message loop
-//	MSG msg = { 0 };
-//	while (WM_QUIT != msg.message)
-//	{
-//		// First check to see if there are any messages that need to be processed for the window (window resizing, minimizing, whatever)
-//		// If not then the window is idle and the D3D rendering occurs. This is in a loop. So the window is rendered over and over, as fast as
-//		// possible as long as we are not manipulating the window in some way
-//		if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
-//		{
-//			TranslateMessage(&msg);
-//			DispatchMessage(&msg);
-//		}
-//		else // Otherwise render
-//		{
-//			m_pRenderDevice->RenderScene();
-//
-//			// Get the time passed since the last frame (since the last time this line was reached) - used so the rendering and update can be
-//			// synchronised to real time and won't be dependent on machine speed
-//			float frameTime = Timer.GetLapTime();
-//			//demo->UpdateScene(frameTime);
-//
-//			// Allow user to quit with escape key
-//			if (KeyHit(Key_Escape))
-//			{
-//				DestroyWindow(m_hWnd);
-//			}
-//		}
-//	}
-//	return msg;
-//}
-//
-////Manages input etc since last frame
-////Returns time delta since last render call
-//float Update();
-//
-////Renders the next frame
-//void Render();
-
-
 
 
 //Creates window

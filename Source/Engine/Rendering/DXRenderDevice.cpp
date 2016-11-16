@@ -258,23 +258,48 @@ namespace Render
 
 		g_GlobalMatrices.view = m_pSceneManager->GetActiveCamera()->GetViewMatrix();
 		SetPerspectiveMatrix(m_pSceneManager->GetActiveCamera());
+		SetConstantBuffer(m_pGlobalMatrixBuffer, 0, &g_GlobalMatrices, sizeof(GlobalMatrixBuffer), ShaderType::Vertex);
+
 
 		///////////////////////////
 		// Depth pre pass
 
-
 		m_pDepthShader->SetTechnique(m_pDeviceContext);
-		SetConstantBuffer(m_pGlobalMatrixBuffer, 0, &g_GlobalMatrices, sizeof(GlobalMatrixBuffer), ShaderType::Vertex);
-		SetConstantBuffer(m_pObjMatrixBuffer, 1, &g_ObjMatrix, sizeof(ObjectMatrixBuffer), ShaderType::Vertex);
+
+		for (auto itr = m_pSceneManager->m_ModelMap.begin(); itr != m_pSceneManager->m_ModelMap.end(); ++itr)
+		{
+			(*itr).first->SetBuffers(m_pDeviceContext);
+			auto& modelList = (*itr).second;
+
+			for (auto modelItr = modelList.begin(); modelItr != modelList.end(); ++modelItr)
+			{
+				g_ObjMatrix.world = (*modelItr)->Matrix();
+				SetConstantBuffer(m_pObjMatrixBuffer, 1, &g_ObjMatrix, sizeof(ObjectMatrixBuffer), ShaderType::Vertex);
+				m_pDeviceContext->DrawIndexed((*itr).first->GetIndexCount(), 0, 0);
+			}
+		}
+
+
+		///////////////////////////
+		// Lighting compute
 
 
 		///////////////////////////
 		// Lighting pass
 
-		m_pModelShader->SetShader(m_pDeviceContext);
-		SetConstantBuffer(m_pGlobalMatrixBuffer, 0, &g_GlobalMatrices, sizeof(GlobalMatrixBuffer), ShaderType::Vertex);
-		SetConstantBuffer(m_pObjMatrixBuffer, 1, &g_ObjMatrix, sizeof(ObjectMatrixBuffer), ShaderType::Vertex);
+		/*m_pModelShader->SetShader(m_pDeviceContext);
+		for (auto itr = m_pSceneManager->m_ModelMap.begin(); itr != m_pSceneManager->m_ModelMap.end(); ++itr)
+		{
+			(*itr).first->SetBuffers(m_pDeviceContext);
+			auto modelList = &((*itr).second);
 
+			for (auto modelItr = ((*itr).second).begin(); modelItr != ((*itr).second).end(); ++modelItr)
+			{
+				g_ObjMatrix.world = (*modelItr)->Matrix();
+				SetConstantBuffer(m_pObjMatrixBuffer, 1, &g_ObjMatrix, sizeof(ObjectMatrixBuffer), ShaderType::Vertex);
+				m_pDeviceContext->DrawIndexed((*itr).first->GetIndexCount(), 0, 0);
+			}
+		}*/
 
 		m_pSwapChain->Present(0, 0);
 	}

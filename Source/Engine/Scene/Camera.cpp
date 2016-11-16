@@ -5,15 +5,7 @@ namespace Scene
 	///////////////////////////
 	// Construct / destruction
 
-	//Creates a camera at the origin
-	Camera::Camera(const float FOV, const float nearClip, const float farClip) : Node()
-	{
-		m_FOV = FOV;
-		m_NearClip = nearClip;
-		m_FarClip = farClip;
-	}
-
-	//Creates a camera with positional data from a matrix
+	//Creates a camera with positional data from a matrix (default world origin)
 	Camera::Camera(const float FOV, const float nearClip, const float farClip, const gen::CMatrix4x4& mat) : Node(mat)
 	{
 		m_FOV = FOV;

@@ -9,10 +9,7 @@ namespace Scene
 		///////////////////////////
 		// Construct / destruction
 
-		//Creates a camera at the origin
-		Camera(const float FOV = 90, const float nearClip = 1.0f, const float farClip = 10000.0f);
-
-		//Creates a camera with positional data from a matrix
+		//Creates a camera with positional data from a matrix (default world origin)
 		Camera(const float FOV = 90, const float nearClip = 1.0f, const float farClip = 10000.0f, const gen::CMatrix4x4& mat = gen::CMatrix4x4::kIdentity);
 
 		//Destructor
