@@ -74,6 +74,7 @@ struct SSubMesh
 	           hasTextureCoords, hasVertexColours;       // (Vertex coordinate assumed)
 	TUInt32    numFaces;
 	SMeshFace* faces;
+	SMeshFace* faceAdjacency; // Vertex indices adjacent to each face above
 };
 
 

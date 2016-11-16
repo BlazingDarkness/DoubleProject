@@ -1,15 +1,7 @@
-/**************************************************************************************************
-	Module:       CImportXFile.h
-	Author:       Laurent Noel
-	Date created: 11/10/05
+//--------------------------------------------------------------------------------------
+// Class encapsulating the import of a Microsoft DirectX .X file
+//--------------------------------------------------------------------------------------
 
-	Class encapsulating the import of a Microsoft DirectX .X file
-
-	Copyright 2006, University of Central Lancashire and Laurent Noel
-
-	Change history:
-		V1.0    Created 12/06/06 - LN
-**************************************************************************************************/
 
 #ifndef GEN_C_IMPORT_XFILE_H_INCLUDED
 #define GEN_C_IMPORT_XFILE_H_INCLUDED
@@ -71,7 +63,7 @@ public:
 		return m_bImported;
 	}
 
-	// Import a Microsoft X-File into a list of meshes and a frame hierarchy
+	// Import a Microsoft X-File into a list of meshes and a frame hierarchy. Optionally calculate adjacency data
 	// Possible return values:
 	//		kSuccess:			...
 	//		kFileError:			Missing file or not an X-file
@@ -80,7 +72,8 @@ public:
 	//		kSystemFailure:		X-file API failure
 	EImportError ImportFile
 	(
-		const string& sXName
+		const string& sXName,
+		bool          bAdjacency = false
 	);
 
 
@@ -110,8 +103,9 @@ public:
 	// Get the render method used for the given sub-mesh
 	ERenderMethod GetSubMeshRenderMethod( const TUInt32 iSubMesh ) const;
 		
-	// Get the specification and data for given submesh, returned through a pointer. May request
-	// tangents to be calculated
+	// Get the specification and data for given sub-mesh, returned through a pointer. May request tangents
+	// to be calculated (for normal or parallax mapping), and adjacency data can optionally be added to the
+	// index buffer (for geometry shaders)
 	// Possible return values:
 	//		kSuccess:			...
 	//		kOutOfSystemMemory:	...
@@ -119,7 +113,8 @@ public:
 	(
 		const TUInt32 iSubMesh,
 		SSubMesh*     pSubMesh,
-		bool          bTangents = false
+		bool          bTangents = false,
+		bool          bAdjacency = false
 	) const;
 
 
@@ -314,10 +309,10 @@ private:
 		TXFileMaterials   materials;
 
 		// Map from material indexes in the list above to material indexes in the global material
-		// list CImportXFile::m_Materials
+		// list CImportXFile::mMaterials
 		TXFileInts        materialMap;
 
-		// Adjacency data - usage unknown - TODO
+		// Adjacency data - usage unknown - CHECK: Assuming triplets of adjacent vertices (geometry shader style)
 		TXFileInts        adjacencyIndices;
 
 		// Vertex duplication list - a per-vertex list of integers - each one the index of the 
@@ -583,6 +578,14 @@ private:
 		TUInt32 iMesh,
 		TXFileVectors* pTangents
 	) const;
+	
+	// Create adjacency indices for a given mesh - each indexes the vertex adjacent to each triangle edge (CHECK).
+	// Will consider vertices within given snap range as the same vertex for this purpose
+	void CalculateAdjacency
+	(
+		TUInt32 iMesh,
+		float   fSnap = 0.001f // Default 1mm snap assuming 1 unit = 1 metre
+	);
 
 
 	/*---------------------------------------------------------------------------------------------
