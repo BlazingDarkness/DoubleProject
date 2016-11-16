@@ -28,6 +28,9 @@
     <Filter Include="3rd Party\DirectXTK">
       <UniqueIdentifier>{fe93148d-3eb0-4190-84e0-678bcd9c1396}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Engine\Interface">
+      <UniqueIdentifier>{d6d5d0d8-04d6-47ff-af05-b37761ed6381}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\3rd Party\Common\CFatalException.cpp">
@@ -203,9 +206,6 @@
     <ClInclude Include="..\Engine\Rendering\DXRenderDevice.h">
       <Filter>Engine\Rendering</Filter>
     </ClInclude>
-    <ClInclude Include="..\Engine\Rendering\IShader.h">
-      <Filter>Engine\Rendering</Filter>
-    </ClInclude>
     <ClInclude Include="..\Engine\Engine.h">
       <Filter>Engine</Filter>
     </ClInclude>
@@ -274,6 +274,9 @@
     </ClInclude>
     <ClInclude Include="..\Engine\Shaders\Shader.h">
       <Filter>Engine\Shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Interface\IRenderDevice.h">
+      <Filter>Engine\Interface</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -88,7 +88,6 @@
     <ClInclude Include="..\Engine\Engine.h" />
     <ClInclude Include="..\Engine\Rendering\DXRenderDevice.h" />
     <ClInclude Include="..\Engine\Rendering\DXIncludes.h" />
-    <ClInclude Include="..\Engine\Rendering\IShader.h" />
     <ClInclude Include="..\Engine\Rendering\MaterialManager.h" />
     <ClInclude Include="..\Engine\Rendering\Mesh.h" />
     <ClInclude Include="..\Engine\Rendering\MeshManager.h" />
@@ -102,6 +101,7 @@
     <ClInclude Include="..\Engine\Shaders\ModelShader.h" />
     <ClInclude Include="..\Engine\Shaders\Shader.h" />
     <ClInclude Include="..\Interface\IEngine.h" />
+    <ClInclude Include="..\Interface\IRenderDevice.h" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="..\Engine\Shaders\ModelPS.hlsl">
