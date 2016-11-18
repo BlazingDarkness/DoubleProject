@@ -1,4 +1,5 @@
 #include "Rendering\DXRenderDevice.h"
+#include <DirectXMath.h>
 
 namespace Render
 {
@@ -15,6 +16,30 @@ namespace Render
 		AL16 gen::CMatrix4x4 world;
 	} g_ObjMatrix;
 
+	//Updated once per frame
+	struct AL16 GlobalLightDataBuffer
+	{
+		AL16 gen::CVector4 ambientColour;
+		AL16 gen::CVector4 cameraPos;
+		AL4 float specularPower;
+		AL4 unsigned int numOfLights;
+		AL4 float padding[2];
+	} g_GlobalLightData;
+
+	//Updated once per material change
+	struct AL16 MaterialBuffer
+	{
+		AL16 gen::CVector4 diffuseColour;
+		AL4 float alpha;
+		AL4 float dirtyness;
+		AL4 float shinyness;
+		AL4 unsigned int hasAlpha; //Use 1/0 for true/false
+		AL4 unsigned int hasDirt; //Use 1/0 for true/false
+		AL4 unsigned int hasDiffuseTex; //Use 1/0 for true/false
+		AL4 unsigned int hasSpecularTex; //Use 1/0 for true/false
+		AL4 float padding;
+	} g_MaterialData;
+
 
 	///////////////////////////
 	// Construct / destruction
@@ -28,7 +53,11 @@ namespace Render
 	//Releases all memory used
 	DXRenderDevice::~DXRenderDevice()
 	{
-		if(m_pSceneManager != nullptr) delete m_pSceneManager;
+		if (m_pSceneManager != nullptr) delete m_pSceneManager;
+		if (m_pMeshManager != nullptr) delete m_pMeshManager;
+		if (m_pMaterialManager != nullptr) delete m_pMaterialManager;
+		if (m_pTextureManager != nullptr) delete m_pTextureManager;
+
 		if (m_pModelShader != nullptr) delete m_pModelShader;
 		if (m_pModelShader != nullptr) delete m_pDepthShader;
 
@@ -38,8 +67,12 @@ namespace Render
 			m_pSwapChain->SetFullscreenState(false, NULL);
 		}
 
+		SAFE_RELEASE(m_pGlobalLightDataBuffer);
+		SAFE_RELEASE(m_pMaterialBuffer);
 		SAFE_RELEASE(m_pGlobalMatrixBuffer);
 		SAFE_RELEASE(m_pObjMatrixBuffer);
+
+		SAFE_RELEASE(m_pSamplerState);
 		SAFE_RELEASE(m_pRasterState);
 		SAFE_RELEASE(m_pDepthStencilView);
 		SAFE_RELEASE(m_pDepthStencilState);
@@ -84,12 +117,13 @@ namespace Render
 		sd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM; // Pixel format of target window
 		sd.BufferDesc.RefreshRate.Numerator = 60;          // Refresh rate of monitor
 		sd.BufferDesc.RefreshRate.Denominator = 1;         // --"--
+		sd.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
 		sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
 		sd.SampleDesc.Count = 1;
 		sd.SampleDesc.Quality = 0;
 		sd.OutputWindow = hWnd;                            // Target window
 		sd.Windowed = TRUE;                                // Whether to render in a window (TRUE) or go fullscreen (FALSE)
-		hr = D3D11CreateDeviceAndSwapChain(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, 0, &featureLevel, 1,
+		hr = D3D11CreateDeviceAndSwapChain(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, D3D11_CREATE_DEVICE_DEBUG, &featureLevel, 1,
 			D3D11_SDK_VERSION, &sd, &m_pSwapChain, &m_pDevice, NULL, &m_pDeviceContext);
 		if (FAILED(hr)) return false;
 
@@ -200,6 +234,18 @@ namespace Render
 		vp.TopLeftY = 0;
 		m_pDeviceContext->RSSetViewports(1, &vp);
 
+		D3D11_SAMPLER_DESC descSampler;
+		ZeroMemory(&descSampler, sizeof(descSampler));
+		descSampler.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+		descSampler.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;    // Wrap texture addressing mode
+		descSampler.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;    // --"--
+		descSampler.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;    // --"--
+		descSampler.ComparisonFunc = D3D11_COMPARISON_NEVER;  // Allows a test on the value sampled from texture prior to use (new to DX10 - not using here)
+		descSampler.MinLOD = 0;                               // Set range of mip-maps to use, these values indicate...
+		descSampler.MaxLOD = D3D11_FLOAT32_MAX;               // ...to use all available mip-maps (i.e. enable mip-mapping)
+		m_pDevice->CreateSamplerState(&descSampler, &m_pSamplerState);
+		m_pDeviceContext->PSSetSamplers(0, 1, &m_pSamplerState);
+
 		m_pModelShader = new ModelShader;
 		if (!m_pModelShader->Init(m_pDevice, ".\\ModelVS.cso", ".\\ModelPS.cso"))
 		{
@@ -225,11 +271,19 @@ namespace Render
 		}
 
 		cbDesc.ByteWidth = sizeof(ObjectMatrixBuffer); // Constant buffer data is packed into float4 data - must round up to size of float4 (16)
-		cbDesc.Usage = D3D11_USAGE_DYNAMIC;
-		cbDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-		cbDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE; // CPU is only going to write to the constants (not read them)
-		cbDesc.MiscFlags = 0;
 		if (FAILED(m_pDevice->CreateBuffer(&cbDesc, NULL, &m_pObjMatrixBuffer)))
+		{
+			return false;
+		}
+
+		cbDesc.ByteWidth = sizeof(GlobalLightDataBuffer); // Constant buffer data is packed into float4 data - must round up to size of float4 (16)
+		if (FAILED(m_pDevice->CreateBuffer(&cbDesc, NULL, &m_pGlobalLightDataBuffer)))
+		{
+			return false;
+		}
+
+		cbDesc.ByteWidth = sizeof(MaterialBuffer); // Constant buffer data is packed into float4 data - must round up to size of float4 (16)
+		if (FAILED(m_pDevice->CreateBuffer(&cbDesc, NULL, &m_pMaterialBuffer)))
 		{
 			return false;
 		}
@@ -237,9 +291,10 @@ namespace Render
 		m_pDeviceContext->VSSetConstantBuffers(0, 1, &m_pGlobalMatrixBuffer);
 		m_pDeviceContext->VSSetConstantBuffers(1, 1, &m_pObjMatrixBuffer);
 
-
 		m_pMeshManager = new MeshManager(m_pDevice);
 		m_pSceneManager = new Scene::Manager(m_pMeshManager);
+		m_pTextureManager = new TextureManager(m_pDevice);
+		m_pMaterialManager = new MaterialManager(m_pTextureManager);
 
 		return true;
 	}
@@ -264,7 +319,7 @@ namespace Render
 		///////////////////////////
 		// Depth pre pass
 
-		m_pDepthShader->SetTechnique(m_pDeviceContext);
+		/*m_pDepthShader->SetTechnique(m_pDeviceContext);
 
 		for (auto itr = m_pSceneManager->m_ModelMap.begin(); itr != m_pSceneManager->m_ModelMap.end(); ++itr)
 		{
@@ -277,7 +332,7 @@ namespace Render
 				SetConstantBuffer(m_pObjMatrixBuffer, 1, &g_ObjMatrix, sizeof(ObjectMatrixBuffer), ShaderType::Vertex);
 				m_pDeviceContext->DrawIndexed((*itr).first->GetIndexCount(), 0, 0);
 			}
-		}
+		}*/
 
 
 		///////////////////////////
@@ -287,19 +342,45 @@ namespace Render
 		///////////////////////////
 		// Lighting pass
 
-		/*m_pModelShader->SetShader(m_pDeviceContext);
+		m_pModelShader->SetShader(m_pDeviceContext);
+
+		g_GlobalLightData.ambientColour = {0.5f, 0.5f, 0.5f, 1.0f};
+		g_GlobalLightData.cameraPos = gen::CVector4(m_pSceneManager->GetActiveCamera()->WorldMatrix().Position());
+		g_GlobalLightData.specularPower = 32;
+		g_GlobalLightData.numOfLights = 0;
+
+		SetConstantBuffer(m_pGlobalLightDataBuffer, 0, &g_GlobalLightData, sizeof(GlobalLightDataBuffer), ShaderType::Pixel);
+
 		for (auto itr = m_pSceneManager->m_ModelMap.begin(); itr != m_pSceneManager->m_ModelMap.end(); ++itr)
 		{
 			(*itr).first->SetBuffers(m_pDeviceContext);
-			auto modelList = &((*itr).second);
+			auto& modelList = (*itr).second;
 
-			for (auto modelItr = ((*itr).second).begin(); modelItr != ((*itr).second).end(); ++modelItr)
+			for (auto modelItr = modelList.begin(); modelItr != modelList.end(); ++modelItr)
 			{
-				g_ObjMatrix.world = (*modelItr)->Matrix();
+				g_ObjMatrix.world = (*modelItr)->WorldMatrix();
 				SetConstantBuffer(m_pObjMatrixBuffer, 1, &g_ObjMatrix, sizeof(ObjectMatrixBuffer), ShaderType::Vertex);
+
+				Material* pMat = (*modelItr)->GetMaterial();
+				g_MaterialData.diffuseColour = pMat->GetDiffuseColour();
+				g_MaterialData.alpha = pMat->GetAlpha();
+				g_MaterialData.dirtyness = pMat->GetDirtyness();
+				g_MaterialData.shinyness = pMat->GetShinyness();
+				g_MaterialData.hasAlpha = pMat->HasAlpha() ? 1 : 0;
+				g_MaterialData.hasDirt = pMat->HasDirt() ? 1 : 0;
+				g_MaterialData.hasDiffuseTex = pMat->HasDiffuseTex() ? 1 : 0;
+				g_MaterialData.hasSpecularTex = pMat->HasSpecularTex() ? 1 : 0;
+
+				if (pMat->HasDiffuseTex())
+				{
+					m_pDeviceContext->PSSetShaderResources(0, 1, pMat->GetDiffuseTexPtr());
+				}
+
+				SetConstantBuffer(m_pMaterialBuffer, 1, &g_MaterialData, sizeof(MaterialBuffer), ShaderType::Pixel);
+
 				m_pDeviceContext->DrawIndexed((*itr).first->GetIndexCount(), 0, 0);
 			}
-		}*/
+		}
 
 		m_pSwapChain->Present(0, 0);
 	}
@@ -359,20 +440,30 @@ namespace Render
 	//Creates and sets the perspective matrix from a camera
 	void DXRenderDevice::SetPerspectiveMatrix(Scene::Camera* camera)
 	{
-		g_GlobalMatrices.projection.MakeIdentity();
+		//g_GlobalMatrices.projection.MakeIdentity();
 
-		//Formula taken from D3DXMatrixPerspectiveFovLH
+		////Formula taken from D3DXMatrixPerspectiveFovLH
 
-		float ratio = static_cast<float>(m_ScreenWidth) / static_cast<float>(m_ScreenHeight);
-		float yScale = 1.0f / gen::Tan(gen::ToRadians(camera->GetFOV()) * 0.5f);
-		float xScale = yScale / ratio;
+		//float ratio = static_cast<float>(m_ScreenWidth) / static_cast<float>(m_ScreenHeight);
+		//float xScale = 1.0f / gen::Tan(gen::ToRadians(camera->GetFOV()) * 0.25f);
+		//float yScale = xScale / ratio;
 
-		g_GlobalMatrices.projection.e00 = yScale;
+
+		float hbyw = static_cast<float>(m_ScreenHeight) / static_cast<float>(m_ScreenWidth);
+
+		DirectX::XMMATRIX mat = DirectX::XMMatrixPerspectiveFovRH(gen::ToRadians(camera->GetFOV() * 0.5f), hbyw, camera->GetNearClip(), camera->GetFarClip());
+		DirectX::XMFLOAT4X4 mat4x4;
+		DirectX::XMStoreFloat4x4(&mat4x4, mat);
+		g_GlobalMatrices.projection.Set(mat4x4.m[0]);
+		
+
+		/*g_GlobalMatrices.projection.e00 = yScale;
 		g_GlobalMatrices.projection.e11 = xScale;
 		g_GlobalMatrices.projection.e22 = camera->GetFarClip() / (camera->GetFarClip() - camera->GetNearClip());
-		g_GlobalMatrices.projection.e32 = (camera->GetFarClip() * (-camera->GetNearClip())) / (camera->GetFarClip() - camera->GetNearClip());
+		g_GlobalMatrices.projection.e32 = (-camera->GetFarClip() - (-(camera->GetNearClip()))) / (camera->GetFarClip() - camera->GetNearClip());
 		g_GlobalMatrices.projection.e23 = 1.0f;
 		g_GlobalMatrices.projection.e33 = 0.0f;
 
+		g_GlobalMatrices.projection.Transpose();*/
 	}
 }

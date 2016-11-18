@@ -2,6 +2,8 @@
 //#include "IRenderDevice.h"
 #include "Rendering\DXIncludes.h"
 #include "Rendering\MeshManager.h"
+#include "Rendering\TextureManager.h"
+#include "Rendering\MaterialManager.h"
 #include "Shaders\ModelShader.h"
 #include "Shaders\DepthShader.h"
 #include "Scene\Manager.h"
@@ -38,6 +40,8 @@ namespace Render
 
 		MeshManager* GetMeshManager() { return m_pMeshManager; }
 
+		MaterialManager* GetMaterialManager() { return m_pMaterialManager; }
+
 		unsigned int GetScreenWidth() { return m_ScreenWidth; }
 
 		unsigned int GetScreenHeight() { return m_ScreenHeight; }
@@ -68,16 +72,23 @@ namespace Render
 		ID3D11DepthStencilView* m_pDepthStencilView = NULL;
 		ID3D11RasterizerState*	m_pRasterState = NULL;
 		ID3D11RenderTargetView* m_pRenderTargetView = NULL;
+		ID3D11SamplerState*		m_pSamplerState = NULL;
 
 		//Constant Buffers
 		ID3D11Buffer* m_pGlobalMatrixBuffer = NULL;
 		ID3D11Buffer* m_pObjMatrixBuffer = NULL;
+		ID3D11Buffer* m_pGlobalLightDataBuffer = NULL;
+		ID3D11Buffer* m_pMaterialBuffer = NULL;
 
 		unsigned int m_ScreenWidth;
 		unsigned int m_ScreenHeight;
 
 		Scene::Manager* m_pSceneManager = nullptr;
 		MeshManager* m_pMeshManager = nullptr;
+		TextureManager* m_pTextureManager = nullptr;
+		MaterialManager* m_pMaterialManager = nullptr;
+
+
 		ModelShader* m_pModelShader = nullptr;
 		DepthShader* m_pDepthShader = nullptr;
 	};

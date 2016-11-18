@@ -1,17 +1,30 @@
 
-cbuffer GlobalLightData
+cbuffer GlobalLightData : register(b0)
 {
-	float4 AmbientColour;
-	float4 CameraPos;
-	float SpecularPower;
-	uint NumOfLights;
-	float2 Padding;
+	float4 AmbientColour	: packoffset(c0);
+	float4 CameraPos		: packoffset(c1);
+	float SpecularPower		: packoffset(c2);
+	uint NumOfLights		: packoffset(c2.y);
+	float2 Padding			: packoffset(c2.z);
 };
 
+cbuffer MaterialData : register(b1)
+{
+	float4 DiffuseColour	: packoffset(c0);
+	float Alpha				: packoffset(c1);
+	float Dirtyness			: packoffset(c1.y);
+	float Shinyness			: packoffset(c1.z);
+	uint HasAlpha			: packoffset(c1.w);
+	uint HasDirt			: packoffset(c2);
+	uint HasDiffuseTex		: packoffset(c2.y);
+	uint HasSpecTex			: packoffset(c2.z);
+	float MaterialPadding	: packoffset(c2.w);
+}
+
+Texture2D DiffuseTexture : register(t0);
+Texture2D SpecularTexture;
 Buffer<float4> LightPosAndBrightnessBuffer;
 Buffer<float4> LightColourBuffer;
-Texture2D DiffuseTexture;
-Texture2D SpecularTexture;
 
 SamplerState TextureSampler;
 
@@ -63,9 +76,16 @@ void main( in InputPS i, out OutputPS o)
 	////////////////////////
 	// Final blending
 
-	// Combine lighting colours with texture - alpha channel of texture is a specular map
-	float4 TextureColour = DiffuseTexture.Sample(TextureSampler, i.UV);
-	o.Colour.rgb = TotalDiffuseColour * TextureColour.rgb + TotalSpecularColour * TextureColour.a;
+	if (HasDiffuseTex == 1)
+	{
+		// Combine lighting colours with texture - alpha channel of texture is a specular map
+		float4 TextureColour = DiffuseTexture.Sample(TextureSampler, i.UV);
+		o.Colour.rgb = TotalDiffuseColour * TextureColour.rgb + TotalSpecularColour * TextureColour.a;
+	}
+	else
+	{
+		o.Colour.rgb = TotalDiffuseColour * DiffuseColour.rgb + TotalSpecularColour * Shinyness;
+	}
 
 	// Set alpha blending to 1 (no alpha available in texture)
 	o.Colour.a = 1.0f;

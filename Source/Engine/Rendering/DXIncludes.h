@@ -7,3 +7,4 @@
 #define SAFE_DELETE(x) if(x != NULL) delete x; x = NULL;
 
 #define AL16 __declspec(align(16))
+#define AL4 __declspec(align(4))

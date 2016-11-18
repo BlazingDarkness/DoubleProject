@@ -100,6 +100,14 @@ Render::MeshManager* Engine::MeshManager()
 	return m_pEngine->m_pMeshManager;
 }
 
+//Returns a pointer to the material manager used in the engine
+Render::MaterialManager* Engine::MaterialManager()
+{
+	if (m_pEngine == nullptr) return nullptr;
+
+	return m_pEngine->m_pMaterialManager;
+}
+
 //Returns a pointer to the scene manager used in the engine
 Scene::Manager* Engine::SceneManager()
 {
@@ -166,6 +174,7 @@ bool Engine::InitEngine(HINSTANCE hInstance, int nCmdShow)
 	}
 
 	m_pMeshManager = m_pRenderDevice->GetMeshManager();
+	m_pMaterialManager = m_pRenderDevice->GetMaterialManager();
 	m_pSceneManager = m_pRenderDevice->GetSceneManager();
 
 	// Initialise simple input functions (in Input.cpp) - not DirectX

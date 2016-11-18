@@ -28,6 +28,9 @@ namespace Render
 		float GetShinyness() { return m_Shinyness; }
 		const gen::CVector4& GetDiffuseColour() { return m_DiffuseColor; }
 
+		ID3D11ShaderResourceView** GetDiffuseTexPtr() { return &m_pDiffuseTex; }
+		ID3D11ShaderResourceView** GetSpecularTexPtr() { return &m_pSpecularTex; }
+
 		bool HasDirt() { return m_HasDirt; }
 		bool HasAlpha() { return m_HasAlpha; }
 		bool HasDiffuseTex() { return m_HasDifTex; }
@@ -50,5 +53,6 @@ namespace Render
 		bool m_HasAlpha;
 		bool m_HasDifTex;
 		bool m_HasSpecTex;
-	} g_DefaultMaterial = { std::string(""), {0.7f, 0.7f, 0.7f, 1.0f}, 1.0f };
+	};
+	extern Material g_DefaultMaterial;
 }

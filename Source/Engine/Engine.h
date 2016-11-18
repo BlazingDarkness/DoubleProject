@@ -34,6 +34,9 @@ public:
 	//Returns a pointer to the mesh manager used in the engine
 	static Render::MeshManager* MeshManager();
 
+	//Returns a pointer to the material manager used in the engine
+	static Render::MaterialManager* MaterialManager();
+
 	//Returns a pointer to the scene manager used in the engine
 	static Scene::Manager* SceneManager();
 
@@ -74,5 +77,6 @@ private:
 	CTimer m_Timer;
 	Render::DXRenderDevice* m_pRenderDevice = nullptr;
 	Render::MeshManager* m_pMeshManager = nullptr;
+	Render::MaterialManager* m_pMaterialManager = nullptr;
 	Scene::Manager* m_pSceneManager = nullptr;
 };
