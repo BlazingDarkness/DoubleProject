@@ -26,6 +26,12 @@ namespace Render
 		//Returns the file name from which the mesh was loaded
 		std::string GetFileName() { return m_FileName; }
 
+		//Returns the number of vertices in the mesh
+		unsigned int GetVertexCount() { return m_VertexCount; }
+
+		//Returns the number of indices in the mesh
+		unsigned int GetIndexCount() { return m_IndexCount; }
+
 	private:
 		ID3D11Buffer* m_pVertexBuffer;
 		ID3D11Buffer* m_pIndexBuffer;

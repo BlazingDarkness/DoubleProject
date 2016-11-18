@@ -92,13 +92,16 @@ namespace Render
 		{
 			return false;
 		}
+
+		return true;
 	}
 
 	//Sets the mesh's buffers to the directX device
 	void Mesh::SetBuffers(ID3D11DeviceContext* pDeviceContext)
 	{
-		unsigned int offset;
+		unsigned int offset = 0;
 		pDeviceContext->IASetVertexBuffers(0, 1, &m_pVertexBuffer, &m_VertexSize, &offset);
 		pDeviceContext->IASetIndexBuffer(m_pIndexBuffer, DXGI_FORMAT_R16_UINT, 0);
+		pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	}
 }

@@ -1,5 +1,6 @@
 #pragma once
 #include "Rendering\Mesh.h"
+#include "Rendering\Material.h"
 #include "Scene\Node.h"
 
 namespace Scene
@@ -29,10 +30,18 @@ namespace Scene
 		//Returns a pointer to the mesh
 		Render::Mesh* GetMesh();
 
+		//Returns a pointer to the material, this could potentially be null
+		Render::Material* GetMaterial();
+
+		//Changes the material that is applied to this model
+		void SetMaterial(Render::Material* pMaterial);
+
 
 	private:
+		///////////////////////////
+		// Variables
 
-
+		Render::Material* m_pMaterial;
 		Render::Mesh* m_pMesh;
 	};
 }

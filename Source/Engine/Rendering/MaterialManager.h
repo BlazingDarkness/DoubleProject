@@ -1,14 +1,40 @@
 #pragma once
-#include "DXIncludes.h"
-#include "CVector3.h"
+#include "Rendering\DXIncludes.h"
+#include "Rendering\TextureManager.h"
+#include "Rendering\Material.h"
 
 namespace Render
 {
-	struct Material
+	class MaterialManager
 	{
-		gen::CVector3 m_Colour;
-		bool m_HasTexture;
-		bool m_HasTransparency;
-		ID3D11ShaderResourceView* m_pTexture;
+	public:
+		///////////////////////////
+		// Construct / destruction
+
+		//Creates a material manager from a texture manager
+		MaterialManager(TextureManager* pTexManager);
+
+		//Cleans up all texture stuff
+		~MaterialManager();
+
+
+		///////////////////////////
+		// Material creation
+
+		//Creates a material from a diffuse and specular texture
+		Material* CreateMaterial(const std::string& texName, const std::string& diffuseTexFile, const std::string& specularTexFile);
+
+		//Creates a material from a colour
+		Material* CreateMaterial(const std::string& texName, const gen::CVector4& diffuseColor, float shinyness = 1.0f);
+
+		//Attempts to find the material from the list of existing materials
+		//Returns a pointer to the default material if it doesn't exist
+		Material* GetMaterial(const std::string& texName);
+
+	private:
+		using MaterialList = std::list<Material*>;
+
+		TextureManager* m_pTextureManager;
+		MaterialList m_MaterialList;
 	};
 }
