@@ -132,6 +132,12 @@
     <ClCompile Include="..\Example\main.cpp">
       <Filter>Example</Filter>
     </ClCompile>
+    <ClCompile Include="..\Engine\Rendering\MaterialManager.cpp">
+      <Filter>Engine\Rendering</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Engine\Rendering\Material.cpp">
+      <Filter>Engine\Rendering</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\3rd Party\Common\CFatalException.h">
@@ -224,9 +230,6 @@
     <ClInclude Include="..\Engine\Rendering\Mesh.h">
       <Filter>Engine\Rendering</Filter>
     </ClInclude>
-    <ClInclude Include="..\Engine\Rendering\MaterialManager.h">
-      <Filter>Engine\Rendering</Filter>
-    </ClInclude>
     <ClInclude Include="..\Engine\Rendering\MeshManager.h">
       <Filter>Engine\Rendering</Filter>
     </ClInclude>
@@ -277,6 +280,12 @@
     </ClInclude>
     <ClInclude Include="..\Interface\IRenderDevice.h">
       <Filter>Engine\Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Engine\Rendering\MaterialManager.h">
+      <Filter>Engine\Rendering</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Engine\Rendering\Material.h">
+      <Filter>Engine\Rendering</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

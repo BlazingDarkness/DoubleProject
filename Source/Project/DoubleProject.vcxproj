@@ -40,6 +40,8 @@
     <ClCompile Include="..\..\3rd Party\Math\MathIO.cpp" />
     <ClCompile Include="..\Engine\Engine.cpp" />
     <ClCompile Include="..\Engine\Rendering\DXRenderDevice.cpp" />
+    <ClCompile Include="..\Engine\Rendering\Material.cpp" />
+    <ClCompile Include="..\Engine\Rendering\MaterialManager.cpp" />
     <ClCompile Include="..\Engine\Rendering\Mesh.cpp" />
     <ClCompile Include="..\Engine\Rendering\MeshManager.cpp" />
     <ClCompile Include="..\Engine\Rendering\TextureManager.cpp" />
@@ -88,6 +90,7 @@
     <ClInclude Include="..\Engine\Engine.h" />
     <ClInclude Include="..\Engine\Rendering\DXRenderDevice.h" />
     <ClInclude Include="..\Engine\Rendering\DXIncludes.h" />
+    <ClInclude Include="..\Engine\Rendering\Material.h" />
     <ClInclude Include="..\Engine\Rendering\MaterialManager.h" />
     <ClInclude Include="..\Engine\Rendering\Mesh.h" />
     <ClInclude Include="..\Engine\Rendering\MeshManager.h" />
