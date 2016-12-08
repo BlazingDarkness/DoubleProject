@@ -3,6 +3,7 @@
 
 namespace Render
 {
+
 	//Updated once per frame
 	struct AL16 GlobalMatrixBuffer
 	{
@@ -40,6 +41,19 @@ namespace Render
 		AL4 float padding;
 	} g_MaterialData;
 
+	//Updated once per frame
+	struct AL16 LightPosBuffer
+	{
+		AL4 gen::CVector3 position;
+		AL4 float brightness;
+	} g_LightPosData[Scene::kMaxLights];
+
+	//Updated once per frame
+	struct AL16 LightColourBuffer
+	{
+		AL4 gen::CVector3 color;
+		AL4 float alpha;
+	} g_LightColourData[Scene::kMaxLights];
 
 	///////////////////////////
 	// Construct / destruction
@@ -71,6 +85,11 @@ namespace Render
 		SAFE_RELEASE(m_pMaterialBuffer);
 		SAFE_RELEASE(m_pGlobalMatrixBuffer);
 		SAFE_RELEASE(m_pObjMatrixBuffer);
+
+		SAFE_RELEASE(m_pLightPosView);
+		SAFE_RELEASE(m_pLightColourView);
+		SAFE_RELEASE(m_pLightPosBuffer);
+		SAFE_RELEASE(m_pLightColourBuffer);
 
 		SAFE_RELEASE(m_pSamplerState);
 		SAFE_RELEASE(m_pRasterState);
@@ -181,10 +200,7 @@ namespace Render
 
 		// Create the depth stencil state.
 		hr = m_pDevice->CreateDepthStencilState(&descDSS, &m_pDepthStencilState);
-		if (FAILED(hr))
-		{
-			return false;
-		}
+		if (FAILED(hr)) return false;
 
 		// Set the depth stencil state.
 		m_pDeviceContext->OMSetDepthStencilState(m_pDepthStencilState, 1);
@@ -260,6 +276,7 @@ namespace Render
 
 
 		D3D11_BUFFER_DESC cbDesc;
+		ZeroMemory(&cbDesc, sizeof(cbDesc));
 		cbDesc.ByteWidth = sizeof(GlobalMatrixBuffer); // Constant buffer data is packed into float4 data - must round up to size of float4 (16)
 		cbDesc.Usage = D3D11_USAGE_DYNAMIC;
 		cbDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
@@ -288,8 +305,45 @@ namespace Render
 			return false;
 		}
 
-		m_pDeviceContext->VSSetConstantBuffers(0, 1, &m_pGlobalMatrixBuffer);
-		m_pDeviceContext->VSSetConstantBuffers(1, 1, &m_pObjMatrixBuffer);
+		D3D11_BUFFER_DESC dbDesc;
+		ZeroMemory(&dbDesc, sizeof(dbDesc));
+		dbDesc.ByteWidth = sizeof(LightColourBuffer) * Scene::kMaxLights;
+		dbDesc.Usage = D3D11_USAGE_DYNAMIC;
+		dbDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+		//dbDesc.BindFlags |= D3D11_BIND_UNORDERED_ACCESS;
+		dbDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+		dbDesc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
+		dbDesc.StructureByteStride = sizeof(LightColourBuffer);
+		if (FAILED(m_pDevice->CreateBuffer(&dbDesc, NULL, &m_pLightColourBuffer)))
+		{
+			return false;
+		}
+
+		dbDesc.ByteWidth = sizeof(LightPosBuffer) * Scene::kMaxLights;
+		dbDesc.StructureByteStride = sizeof(LightPosBuffer);
+		if (FAILED(m_pDevice->CreateBuffer(&dbDesc, NULL, &m_pLightPosBuffer)))
+		{
+			return false;
+		}
+
+		D3D11_SHADER_RESOURCE_VIEW_DESC descSRV;
+		ZeroMemory(&descSRV, sizeof(descSRV));
+		descSRV.Format = DXGI_FORMAT_UNKNOWN;
+		descSRV.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
+		descSRV.Buffer.FirstElement = 0;
+		descSRV.Buffer.NumElements = Scene::kMaxLights;
+		descSRV.Buffer.ElementWidth = Scene::kMaxLights;
+
+		if (FAILED(m_pDevice->CreateShaderResourceView(m_pLightColourBuffer, &descSRV, &m_pLightColourView)))
+		{
+			return false;
+		}
+
+		if (FAILED(m_pDevice->CreateShaderResourceView(m_pLightPosBuffer, &descSRV, &m_pLightPosView)))
+		{
+			return false;
+		}
+
 
 		m_pMeshManager = new MeshManager(m_pDevice);
 		m_pSceneManager = new Scene::Manager(m_pMeshManager);
@@ -313,8 +367,18 @@ namespace Render
 
 		g_GlobalMatrices.view = m_pSceneManager->GetActiveCamera()->GetViewMatrix();
 		SetPerspectiveMatrix(m_pSceneManager->GetActiveCamera());
-		SetConstantBuffer(m_pGlobalMatrixBuffer, 0, &g_GlobalMatrices, sizeof(GlobalMatrixBuffer), ShaderType::Vertex);
+		MapBufferData(m_pGlobalMatrixBuffer, &g_GlobalMatrices, sizeof(GlobalMatrixBuffer));
+		SetConstantBuffer(m_pGlobalMatrixBuffer, 0, ShaderType::Vertex);
 
+		int numOfLights = 0;
+		for (auto light : m_pSceneManager->m_LightList)
+		{
+			g_LightPosData[numOfLights].brightness = light->GetBrightness();
+			g_LightPosData[numOfLights].position = light->WorldMatrix().Position();
+			g_LightColourData[numOfLights].color = light->GetColour();
+			g_LightColourData[numOfLights].alpha = 0.0f;
+			++numOfLights;
+		}
 
 		///////////////////////////
 		// Depth pre pass
@@ -344,12 +408,18 @@ namespace Render
 
 		m_pModelShader->SetShader(m_pDeviceContext);
 
-		g_GlobalLightData.ambientColour = {0.5f, 0.5f, 0.5f, 1.0f};
+		g_GlobalLightData.ambientColour = {0.1f, 0.1f, 0.1f, 1.0f};
 		g_GlobalLightData.cameraPos = gen::CVector4(m_pSceneManager->GetActiveCamera()->WorldMatrix().Position());
 		g_GlobalLightData.specularPower = 32;
-		g_GlobalLightData.numOfLights = 0;
+		g_GlobalLightData.numOfLights = numOfLights;
 
-		SetConstantBuffer(m_pGlobalLightDataBuffer, 0, &g_GlobalLightData, sizeof(GlobalLightDataBuffer), ShaderType::Pixel);
+		MapBufferData(m_pGlobalLightDataBuffer, &g_GlobalLightData, sizeof(GlobalLightDataBuffer));
+		MapBufferData(m_pLightPosBuffer, &g_LightPosData, sizeof(LightPosBuffer) * Scene::kMaxLights);
+		MapBufferData(m_pLightColourBuffer, &g_LightColourData, sizeof(LightColourBuffer) * Scene::kMaxLights);
+
+		SetConstantBuffer(m_pGlobalLightDataBuffer, 0, ShaderType::Pixel);
+		SetStructuredBuffer(m_pLightPosView, 2, ShaderType::Pixel);
+		SetStructuredBuffer(m_pLightColourView, 3, ShaderType::Pixel);
 
 		for (auto itr = m_pSceneManager->m_ModelMap.begin(); itr != m_pSceneManager->m_ModelMap.end(); ++itr)
 		{
@@ -359,7 +429,8 @@ namespace Render
 			for (auto modelItr = modelList.begin(); modelItr != modelList.end(); ++modelItr)
 			{
 				g_ObjMatrix.world = (*modelItr)->WorldMatrix();
-				SetConstantBuffer(m_pObjMatrixBuffer, 1, &g_ObjMatrix, sizeof(ObjectMatrixBuffer), ShaderType::Vertex);
+				MapBufferData(m_pObjMatrixBuffer, &g_ObjMatrix, sizeof(ObjectMatrixBuffer));
+				SetConstantBuffer(m_pObjMatrixBuffer, 1, ShaderType::Vertex);
 
 				Material* pMat = (*modelItr)->GetMaterial();
 				g_MaterialData.diffuseColour = pMat->GetDiffuseColour();
@@ -376,7 +447,8 @@ namespace Render
 					m_pDeviceContext->PSSetShaderResources(0, 1, pMat->GetDiffuseTexPtr());
 				}
 
-				SetConstantBuffer(m_pMaterialBuffer, 1, &g_MaterialData, sizeof(MaterialBuffer), ShaderType::Pixel);
+				MapBufferData(m_pMaterialBuffer, &g_MaterialData, sizeof(MaterialBuffer));
+				SetConstantBuffer(m_pMaterialBuffer, 1, ShaderType::Pixel);
 
 				m_pDeviceContext->DrawIndexed((*itr).first->GetIndexCount(), 0, 0);
 			}
@@ -392,16 +464,15 @@ namespace Render
 	//Resets the back buffer and depth buffers
 	void DXRenderDevice::ClearScreen()
 	{
-		float ClearColor[4] = { 0.2f, 0.2f, 0.3f, 1.0f };
+		float ClearColor[4] = { 0.1f, 0.1f, 0.15f, 1.0f };
 		
 		m_pDeviceContext->ClearRenderTargetView(m_pRenderTargetView, ClearColor);
 
 		m_pDeviceContext->ClearDepthStencilView(m_pDepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
 	}
 
-
-	//Copys the data to a constant buffer
-	void DXRenderDevice::SetConstantBuffer(ID3D11Buffer* buffer, unsigned int bufferIndex, void* data, unsigned int dataSize, ShaderType sType)
+	//Copys the data to a buffer
+	void DXRenderDevice::MapBufferData(ID3D11Buffer* buffer, void* data, unsigned int dataSize)
 	{
 		//This function's code was taken in part from Rastertek's tutorial dx11s2tut04
 		//Then heavily simplified for general use
@@ -421,9 +492,12 @@ namespace Render
 
 		// Unlock the constant buffer.
 		m_pDeviceContext->Unmap(buffer, 0);
+	}
 
-		// Finanly set the constant buffer in the vertex shader with the updated values.
-		switch (sType)
+	//Sets a constant buffer to a shader
+	void DXRenderDevice::SetConstantBuffer(ID3D11Buffer* buffer, unsigned int bufferIndex, ShaderType type)
+	{
+		switch (type)
 		{
 		case ShaderType::Vertex:
 			m_pDeviceContext->VSSetConstantBuffers(bufferIndex, 1, &buffer);
@@ -433,6 +507,23 @@ namespace Render
 			break;
 		case ShaderType::Compute:
 			m_pDeviceContext->CSSetConstantBuffers(bufferIndex, 1, &buffer);
+			break;
+		}
+	}
+
+	//Sets a structured buffer to a shader
+	void DXRenderDevice::SetStructuredBuffer(ID3D11ShaderResourceView* resource, unsigned int resourceIndex, ShaderType type)
+	{
+		switch (type)
+		{
+		case ShaderType::Vertex:
+			m_pDeviceContext->VSSetShaderResources(resourceIndex, 1, &resource);
+			break;
+		case ShaderType::Pixel:
+			m_pDeviceContext->PSSetShaderResources(resourceIndex, 1, &resource);
+			break;
+		case ShaderType::Compute:
+			m_pDeviceContext->CSSetShaderResources(resourceIndex, 1, &resource);
 			break;
 		}
 	}
@@ -451,11 +542,11 @@ namespace Render
 
 		float hbyw = static_cast<float>(m_ScreenHeight) / static_cast<float>(m_ScreenWidth);
 
-		DirectX::XMMATRIX mat = DirectX::XMMatrixPerspectiveFovRH(gen::ToRadians(camera->GetFOV() * 0.5f), hbyw, camera->GetNearClip(), camera->GetFarClip());
+		//DirectX::XMMATRIX mat = DirectX::XMMatrixPerspectiveFovLH( DirectX::XMConvertToRadians(45.0f), hbyw, 50.0f, 2000.0f);
+		DirectX::XMMATRIX mat = DirectX::XMMatrixPerspectiveFovLH(gen::ToRadians(camera->GetFOV()), hbyw * 1.5f, camera->GetNearClip(), camera->GetFarClip());
 		DirectX::XMFLOAT4X4 mat4x4;
 		DirectX::XMStoreFloat4x4(&mat4x4, mat);
 		g_GlobalMatrices.projection.Set(mat4x4.m[0]);
-		
 
 		/*g_GlobalMatrices.projection.e00 = yScale;
 		g_GlobalMatrices.projection.e11 = xScale;

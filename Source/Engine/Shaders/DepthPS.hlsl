@@ -19,5 +19,5 @@ struct OutputPS
 void main( in InputPS i, out OutputPS o )
 {
 	//Grey scale depth position
-	o.Colour = i.ProjPos.z / i.ProjPos.w;
+	o.Colour = clamp(i.ProjPos.z / i.ProjPos.w, 0.0f, 1.0f);
 }

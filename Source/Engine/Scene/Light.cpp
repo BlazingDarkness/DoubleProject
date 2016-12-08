@@ -7,22 +7,7 @@ namespace Scene
 	///////////////////////////
 	// Construct / destruction
 
-	//Creates a light at the origin with a colour and brightness
-	Light::Light(const gen::CVector3& colour, const float brightness) : Node()
-	{
-		m_Colour = colour;
-		m_Brightness = brightness;
-	}
-
-	//Creates a light with a colour, brightness, position, rotation, and scale
-	Light::Light(const gen::CVector3 colour, const float brightness,
-				 const gen::CVector3& pos, const gen::CVector3& rot, const gen::CVector3& scale) : Node(pos, rot, scale)
-	{
-		m_Colour = colour;
-		m_Brightness = brightness;
-	}
-
-	//Creates a light with a colour and brightness with positional data from a matrix
+	//Creates a light with a colour and brightness with positional data from a matrix (default world origin)
 	Light::Light(const gen::CVector3& colour, const float brightness, const gen::CMatrix4x4& mat) : Node(mat)
 	{
 		m_Colour = colour;

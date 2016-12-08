@@ -42,7 +42,11 @@ namespace Render
 
 		MaterialManager* GetMaterialManager() { return m_pMaterialManager; }
 
+		void SetScreenWidth(unsigned int screenWidth) { m_ScreenWidth = screenWidth; }
+
 		unsigned int GetScreenWidth() { return m_ScreenWidth; }
+
+		void SetScreenHeight(unsigned int screenHeight) { m_ScreenHeight = screenHeight; }
 
 		unsigned int GetScreenHeight() { return m_ScreenHeight; }
 
@@ -54,8 +58,14 @@ namespace Render
 		//Resets the back buffer and depth buffers
 		void ClearScreen();
 
-		//Copys the data to a constant buffer
-		void SetConstantBuffer(ID3D11Buffer* buffer, unsigned int bufferIndex, void* data, unsigned int dataSize, ShaderType type);
+		//Copys the data to a buffer
+		void MapBufferData(ID3D11Buffer* buffer, void* data, unsigned int dataSize);
+
+		//Sets a constant buffer to a shader
+		void SetConstantBuffer(ID3D11Buffer* buffer, unsigned int bufferIndex, ShaderType type);
+
+		//Sets a structured buffer to a shader
+		void SetStructuredBuffer(ID3D11ShaderResourceView* resource, unsigned int resourceIndex, ShaderType type);
 
 		//Creates and sets the perspective matrix from a camera
 		void SetPerspectiveMatrix(Scene::Camera* camera);
@@ -79,6 +89,13 @@ namespace Render
 		ID3D11Buffer* m_pObjMatrixBuffer = NULL;
 		ID3D11Buffer* m_pGlobalLightDataBuffer = NULL;
 		ID3D11Buffer* m_pMaterialBuffer = NULL;
+
+		//Structured Buffers
+		ID3D11Buffer* m_pLightPosBuffer = NULL;
+		ID3D11Buffer* m_pLightColourBuffer = NULL;
+
+		ID3D11ShaderResourceView* m_pLightPosView = NULL;
+		ID3D11ShaderResourceView* m_pLightColourView = NULL;
 
 		unsigned int m_ScreenWidth;
 		unsigned int m_ScreenHeight;

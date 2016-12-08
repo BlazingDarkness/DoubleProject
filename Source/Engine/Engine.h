@@ -64,6 +64,8 @@ private:
 	//Returns false if failed
 	bool InitWindow(HINSTANCE hInstance, int nCmdShow);
 
+	//Callback
+	static LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 
 	///////////////////////////
 	// Variables

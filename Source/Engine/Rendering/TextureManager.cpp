@@ -46,10 +46,15 @@ namespace Render
 		ID3D11ShaderResourceView* textureView = NULL;
 		ID3D11Resource* texture = NULL;
 		std::wstring widestr = std::wstring(file.begin(), file.end());
-		
-		//DirectX::Create
 
-		if (FAILED(DirectX::CreateWICTextureFromFile(m_pDevice, widestr.c_str(), &texture, &textureView)))//D3D11CreateShaderResourceViewFromFile(m_pDevice, widestr.c_str(), NULL, NULL, &resource, NULL)))
+		if (FAILED(DirectX::CreateWICTextureFromFile(m_pDevice, widestr.c_str(), /*&texture*/NULL, &textureView)))
+		/*if (FAILED(DirectX::CreateWICTextureFromFileEx(m_pDevice,
+			widestr.c_str(),
+			0,
+			D3D11_USAGE_IMMUTABLE, D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET,
+			0, D3D11_RESOURCE_MISC_GENERATE_MIPS,
+			false,
+			&texture, &textureView)))*/
 		{
 			//Output error message with file name
 #ifdef _DEBUG

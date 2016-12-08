@@ -4,8 +4,8 @@
 
 cbuffer GlobalMatrix : register(b0)
 {
-	float4x4 ViewMatrix;
-	float4x4 ProjMatrix;
+	row_major float4x4 ViewMatrix;
+	row_major float4x4 ProjMatrix;
 };
 
 cbuffer ObjectMatrix : register(b1)

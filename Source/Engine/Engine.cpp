@@ -204,7 +204,7 @@ bool Engine::InitWindow(HINSTANCE hInstance, int nCmdShow)
 	wcex.hCursor = LoadCursor(NULL, IDC_ARROW);
 	wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
 	wcex.lpszMenuName = NULL;
-	wcex.lpszClassName = L"TutorialWindowClass";
+	wcex.lpszClassName = L"ForwardPlusDemo";
 	wcex.hIconSm = LoadIcon(wcex.hInstance, (LPCTSTR)IDI_TUTORIAL1);
 	if (!RegisterClassEx(&wcex))
 		return false;
@@ -213,7 +213,7 @@ bool Engine::InitWindow(HINSTANCE hInstance, int nCmdShow)
 	m_hInst = hInstance;
 	RECT rc = { 0, 0, 1280, 960 };
 	AdjustWindowRect(&rc, WS_OVERLAPPEDWINDOW, FALSE);
-	m_hWnd = CreateWindow(L"TutorialWindowClass", L"Direct3D 10: Texturing", WS_OVERLAPPEDWINDOW,
+	m_hWnd = CreateWindow(L"ForwardPlusDemo", L"Forward Plus Rendering Demo", WS_OVERLAPPEDWINDOW,
 		CW_USEDEFAULT, CW_USEDEFAULT, rc.right - rc.left, rc.bottom - rc.top, NULL, NULL, hInstance,
 		NULL);
 	if (!m_hWnd)
@@ -227,9 +227,10 @@ bool Engine::InitWindow(HINSTANCE hInstance, int nCmdShow)
 //--------------------------------------------------------------------------------------
 // Called every time the application receives a message
 //--------------------------------------------------------------------------------------
-LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+LRESULT CALLBACK Engine::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	PAINTSTRUCT ps;
+	RECT rect;
 	HDC hdc;
 
 	switch (message)
@@ -278,6 +279,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_MOUSEMOVE:
 		//g_MouseX = GET_X_LPARAM(lParam);
 		//g_MouseY = GET_Y_LPARAM(lParam);
+		break;
+
+	case WM_SIZING:
+		//rect = *(reinterpret_cast<RECT*>(lParam));
+		if (m_pEngine != nullptr)
+		{
+			if (SUCCEEDED(GetWindowRect(hWnd, &rect)))
+			{
+				m_pEngine->m_pRenderDevice->SetScreenHeight(rect.bottom - rect.top);
+				m_pEngine->m_pRenderDevice->SetScreenWidth(rect.right - rect.left);
+			}
+		}
 		break;
 
 	default:

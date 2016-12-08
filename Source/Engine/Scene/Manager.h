@@ -12,6 +12,7 @@ namespace Render {
 }
 namespace Scene
 {
+	const unsigned int kMaxLights = 2048;
 
 	class Manager
 	{
