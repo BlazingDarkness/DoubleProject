@@ -22,9 +22,9 @@ cbuffer MaterialData : register(b1)
 }
 
 Texture2D DiffuseTexture : register(t0);
-Texture2D SpecularTexture;
-Buffer<float4> LightPosAndBrightnessBuffer;
-Buffer<float4> LightColourBuffer;
+Texture2D SpecularTexture : register(t1);
+StructuredBuffer<float4> LightPosAndBrightnessBuffer : register(t2);
+StructuredBuffer<float4> LightColourBuffer : register(t3);
 
 SamplerState TextureSampler;
 
@@ -57,20 +57,22 @@ void main( in InputPS i, out OutputPS o)
 	float3 TotalDiffuseColour = AmbientColour.rgb;
 	float3 TotalSpecularColour = 0;
 
-	for (uint light = 0; light < NumOfLights; light++)
+	for (uint light = 0; light < NumOfLights; ++light)
 	{
-		// Calculate diffuse lighting from the 1st light. Standard equation: Diffuse = light colour * max(0, N.L)
+		// Calculate diffuse lighting from the light. Equation: Diffuse = light colour * max(0, N.L)
 		float3 LightDir = LightPosAndBrightnessBuffer[light].xyz - i.WorldPos.xyz;
 		float LightDist = length(LightDir);
-		float LightStrength = saturate(LightPosAndBrightnessBuffer[light].w / LightDist);
+		float LightBrightness = LightPosAndBrightnessBuffer[light].w;
 		LightDir /= LightDist;
+		float LightStrength = saturate(LightBrightness / LightDist);
 		float3 DiffuseColour = LightStrength * LightColourBuffer[light].xyz * saturate(dot(WorldNormal, LightDir));
 		TotalDiffuseColour += DiffuseColour;
+		
 
 		// Calculate specular lighting from the 1st light. Standard equation: Specular = light colour * max(0, (N.H)^p)
 		// Slight tweak here: multiply by diffuse colour rather than light colour
 		float3 Halfway = normalize(CameraDir + LightDir);
-		TotalSpecularColour += DiffuseColour * saturate(pow(dot(WorldNormal, Halfway), SpecularPower));
+		TotalSpecularColour += DiffuseColour * saturate(pow(dot(WorldNormal, Halfway), SpecularPower)) * Shinyness;
 	}
 
 	////////////////////////

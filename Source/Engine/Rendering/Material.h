@@ -14,6 +14,9 @@ namespace Render
 		//Creates a material from a diffuse and specular texture
 		Material(const std::string& name, ID3D11ShaderResourceView* pDiffuseTex, ID3D11ShaderResourceView* pSpecularTex);
 
+		//Creates a material from a diffuse texture
+		Material(const std::string& name, ID3D11ShaderResourceView* pDiffuseTex, float shinyness = 1.0f);
+
 		//Creates a material from a colour
 		Material(const std::string& name, const gen::CVector4& diffuseColor, float shinyness = 1.0f);
 

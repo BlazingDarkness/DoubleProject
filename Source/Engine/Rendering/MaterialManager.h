@@ -24,6 +24,9 @@ namespace Render
 		//Creates a material from a diffuse and specular texture
 		Material* CreateMaterial(const std::string& texName, const std::string& diffuseTexFile, const std::string& specularTexFile);
 
+		//Creates a material from a diffuse texture
+		Material* CreateMaterial(const std::string& texName, const std::string& diffuseTexFile, float shinyness = 1.0f);
+
 		//Creates a material from a colour
 		Material* CreateMaterial(const std::string& texName, const gen::CVector4& diffuseColor, float shinyness = 1.0f);
 

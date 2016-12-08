@@ -45,6 +45,20 @@ namespace Render
 		return m;
 	}
 
+	//Creates a material from a diffuse texture
+	//Returns a pointer to the default material if unable to load textures
+	Material* MaterialManager::CreateMaterial(const std::string& texName, const std::string& diffuseTexFile, float shinyness)
+	{
+		ID3D11ShaderResourceView* pDiffuseTex = m_pTextureManager->LoadTexture(diffuseTexFile);
+		if (pDiffuseTex == NULL) return &g_DefaultMaterial;
+
+		Material* m = new Material(texName, pDiffuseTex, shinyness);
+
+		m_MaterialList.push_back(m);
+
+		return m;
+	}
+
 	//Creates a material from a colour
 	Material* MaterialManager::CreateMaterial(const std::string& texName, const gen::CVector4& diffuseColor, float shinyness)
 	{
