@@ -1,11 +1,14 @@
 #pragma once
 //#include "IRenderDevice.h"
-#include "Rendering\DXIncludes.h"
+#include "DXGraphics\DXIncludes.h"
+#include "DXGraphics\ConstantBuffer.h"
+#include "DXGraphics\StructuredBuffer.h"
 #include "Rendering\MeshManager.h"
 #include "Rendering\TextureManager.h"
 #include "Rendering\MaterialManager.h"
 #include "Shaders\ModelShader.h"
 #include "Shaders\DepthShader.h"
+#include "Shaders\CommonStructs.h"
 #include "Scene\Manager.h"
 
 namespace Render
@@ -58,17 +61,8 @@ namespace Render
 		//Resets the back buffer and depth buffers
 		void ClearScreen();
 
-		//Copys the data to a buffer
-		void MapBufferData(ID3D11Buffer* buffer, void* data, unsigned int dataSize);
-
-		//Sets a constant buffer to a shader
-		void SetConstantBuffer(ID3D11Buffer* buffer, unsigned int bufferIndex, ShaderType type);
-
-		//Sets a structured buffer to a shader
-		void SetStructuredBuffer(ID3D11ShaderResourceView* resource, unsigned int resourceIndex, ShaderType type);
-
 		//Creates and sets the perspective matrix from a camera
-		void SetPerspectiveMatrix(Scene::Camera* camera);
+		gen::CMatrix4x4 CalcPerspectiveMatrix(Scene::Camera* camera);
 
 
 		///////////////////////////
@@ -85,17 +79,16 @@ namespace Render
 		ID3D11SamplerState*		m_pSamplerState = NULL;
 
 		//Constant Buffers
-		ID3D11Buffer* m_pGlobalMatrixBuffer = NULL;
-		ID3D11Buffer* m_pObjMatrixBuffer = NULL;
-		ID3D11Buffer* m_pGlobalLightDataBuffer = NULL;
-		ID3D11Buffer* m_pMaterialBuffer = NULL;
+		template<typename T>
+		using ConstBuffer = DXG::ConstantBuffer<T>;
+
+		ConstBuffer<GlobalMatrix>* m_GlobalMatrixConstBuffer;
+		ConstBuffer<ObjectMatrix>* m_ObjMatrixConstBuffer;
+		ConstBuffer<GlobalLightData>* m_GlobalLightConstBuffer;
+		ConstBuffer<MaterialData>* m_MaterialConstBuffer;
 
 		//Structured Buffers
-		ID3D11Buffer* m_pLightPosBuffer = NULL;
-		ID3D11Buffer* m_pLightColourBuffer = NULL;
-
-		ID3D11ShaderResourceView* m_pLightPosView = NULL;
-		ID3D11ShaderResourceView* m_pLightColourView = NULL;
+		DXG::StructuredBuffer<Light>* m_pLightStructuredBuffer;
 
 		unsigned int m_ScreenWidth;
 		unsigned int m_ScreenHeight;

@@ -6,13 +6,15 @@ const int kLightCols = 4;
 const int kNumOfColours = 4;
 const gen::CVector3 kLightColours[kNumOfColours] = { Scene::Light::kBlue, Scene::Light::kWhite, Scene::Light::kGreen, Scene::Light::kRed };
 
-
 Scene::Model* g_pTeapotModel = nullptr;
 Scene::Model* g_pFloorModel = nullptr;
 Scene::Camera* g_pCamera = nullptr;
 Scene::Light* g_pLights[kLightRows * kLightCols] = { nullptr };
 Render::Material* g_pMoonMaterial = nullptr;
 Render::Material* g_pWoodMaterial = nullptr;
+Render::Material* g_pOrangeMaterial = nullptr;
+Render::Material* g_pCyanMaterial = nullptr;
+Render::Material* g_pMatGreyMaterial = nullptr;
 
 //Returns true if all items in scene were successfully created
 bool CreateScene()
@@ -25,7 +27,10 @@ bool CreateScene()
 
 	//Materials
 	g_pMoonMaterial = Engine::MaterialManager()->CreateMaterial("Moon", "..\\..\\Media\\Moon.jpg", 1.0f);
-	g_pWoodMaterial = Engine::MaterialManager()->CreateMaterial("Wood", "..\\..\\Media\\wood2.jpg", 0.1f);
+	g_pWoodMaterial = Engine::MaterialManager()->CreateMaterial("Wood", "..\\..\\Media\\wood2.jpg", 1.0f);
+	g_pCyanMaterial = Engine::MaterialManager()->CreateMaterial("Cyan", gen::CVector4{ 0.0f, 0.8f, 0.8f, 1.0f }, 1.0f);
+	g_pOrangeMaterial = Engine::MaterialManager()->CreateMaterial("Orange", gen::CVector4{ 1.0f, 0.5f, 0.0f, 1.0f }, 1.0f);
+	g_pMatGreyMaterial = Engine::MaterialManager()->CreateMaterial("Mat Grey", gen::CVector4{ 0.7f, 0.7f, 0.7f, 1.0f }, 0.0f);
 
 	g_pFloorModel->SetMaterial(g_pWoodMaterial);
 
@@ -34,13 +39,13 @@ bool CreateScene()
 	{
 		for (int col = 0; col < kLightCols; ++col)
 		{
-			g_pLights[row * kLightCols + 0] = Engine::SceneManager()->CreateLight(kLightColours[col % kNumOfColours], 5.0f);
-			g_pLights[row * kLightCols + 0]->Matrix().SetPosition({ 75.0f - (50.0f * static_cast<float>(col)), 10.0f, 75.0f - (50.0f * static_cast<float>(row)) });
+			g_pLights[row * kLightCols + 0] = Engine::SceneManager()->CreateLight(kLightColours[col % kNumOfColours], 10.0f);
+			g_pLights[row * kLightCols + 0]->Matrix().SetPosition({ 75.0f - (50.0f * static_cast<float>(col)), 20.0f, 75.0f - (50.0f * static_cast<float>(row)) });
 		}
 	}
 
 	//Camera
-	g_pCamera = Engine::SceneManager()->CreateCamera();
+	g_pCamera = Engine::SceneManager()->CreateCamera(90.0f, 1.0f);
 	if (g_pCamera == nullptr) return false;
 
 	Engine::SceneManager()->SetActiveCamera(g_pCamera);
@@ -60,15 +65,15 @@ void Controls(float delta)
 	{
 		g_pCamera->Matrix().RotateLocalX(-1.0f * delta);
 	}
-	else if (KeyHeld(EKeyCode::Key_Down))
+	if (KeyHeld(EKeyCode::Key_Down))
 	{
 		g_pCamera->Matrix().RotateLocalX(1.0f * delta);
 	}
-	else if (KeyHeld(EKeyCode::Key_Left))
+	if (KeyHeld(EKeyCode::Key_Left))
 	{
 		g_pCamera->Matrix().RotateLocalY(-1.0f * delta);
 	}
-	else if (KeyHeld(EKeyCode::Key_Right))
+	if (KeyHeld(EKeyCode::Key_Right))
 	{
 		g_pCamera->Matrix().RotateLocalY(1.0f * delta);
 	}
@@ -78,23 +83,23 @@ void Controls(float delta)
 	{
 		g_pCamera->Matrix().MoveLocalZ(kCameraSpeed * delta);
 	}
-	else if (KeyHeld(EKeyCode::Key_S))
+	if (KeyHeld(EKeyCode::Key_S))
 	{
 		g_pCamera->Matrix().MoveLocalZ(-kCameraSpeed * delta);
 	}
-	else if (KeyHeld(EKeyCode::Key_D))
+	if (KeyHeld(EKeyCode::Key_D))
 	{
 		g_pCamera->Matrix().MoveLocalX(kCameraSpeed * delta);
 	}
-	else if (KeyHeld(EKeyCode::Key_A))
+	if (KeyHeld(EKeyCode::Key_A))
 	{
 		g_pCamera->Matrix().MoveLocalX(-kCameraSpeed * delta);
 	}
-	else if (KeyHeld(EKeyCode::Key_Q))
+	if (KeyHeld(EKeyCode::Key_Q))
 	{
 		g_pCamera->Matrix().MoveLocalY(kCameraSpeed * delta);
 	}
-	else if (KeyHeld(EKeyCode::Key_E))
+	if (KeyHeld(EKeyCode::Key_E))
 	{
 		g_pCamera->Matrix().MoveLocalY(-kCameraSpeed * delta);
 	}
@@ -104,15 +109,15 @@ void Controls(float delta)
 	{
 		g_pTeapotModel->Matrix().MoveLocalZ(20.0f * delta);
 	}
-	else if (KeyHeld(EKeyCode::Key_G))
+	if (KeyHeld(EKeyCode::Key_G))
 	{
 		g_pTeapotModel->Matrix().MoveLocalZ(-20.0f * delta);
 	}
-	else if (KeyHeld(EKeyCode::Key_H))
+	if (KeyHeld(EKeyCode::Key_H))
 	{
 		g_pTeapotModel->Matrix().MoveLocalX(20.0f * delta);
 	}
-	else if (KeyHeld(EKeyCode::Key_F))
+	if (KeyHeld(EKeyCode::Key_F))
 	{
 		g_pTeapotModel->Matrix().MoveLocalX(-20.0f * delta);
 	}
@@ -122,42 +127,43 @@ void Controls(float delta)
 	{
 		g_pTeapotModel->Matrix().RotateLocalX(-1.0f * delta);
 	}
-	else if (KeyHeld(EKeyCode::Key_K))
+	if (KeyHeld(EKeyCode::Key_K))
 	{
 		g_pTeapotModel->Matrix().RotateLocalX(1.0f * delta);
 	}
-	else if (KeyHeld(EKeyCode::Key_J))
+	if (KeyHeld(EKeyCode::Key_J))
 	{
 		g_pTeapotModel->Matrix().RotateLocalY(-1.0f * delta);
 	}
-	else if (KeyHeld(EKeyCode::Key_L))
+	if (KeyHeld(EKeyCode::Key_L))
 	{
 		g_pTeapotModel->Matrix().RotateLocalY(1.0f * delta);
 	}
 
 	//Material switcher
-	if (KeyHeld(EKeyCode::Key_0))
+	if (KeyHit(EKeyCode::Key_0))
 	{
 		g_pTeapotModel->SetMaterial(&Render::g_DefaultMaterial);
-		Render::g_DefaultMaterial = Render::Material("default", { 0.7f, 0.7f, 0.7f, 1.0f });
 	}
-	else if (KeyHeld(EKeyCode::Key_1))
+	if (KeyHit(EKeyCode::Key_1))
 	{
-		g_pTeapotModel->SetMaterial(&Render::g_DefaultMaterial);
-		Render::g_DefaultMaterial = Render::Material("default", { 1.0f, 0.5f, 0.0f, 1.0f });
+		g_pTeapotModel->SetMaterial(g_pOrangeMaterial);
 	}
-	else if (KeyHeld(EKeyCode::Key_2))
+	if (KeyHit(EKeyCode::Key_2))
 	{
-		g_pTeapotModel->SetMaterial(&Render::g_DefaultMaterial);
-		Render::g_DefaultMaterial = Render::Material("default", { 0.0f, 0.8f, 0.8f, 1.0f });
+		g_pTeapotModel->SetMaterial(g_pCyanMaterial);
 	}
-	else if (KeyHeld(EKeyCode::Key_3))
+	if (KeyHit(EKeyCode::Key_3))
 	{
 		g_pTeapotModel->SetMaterial(g_pMoonMaterial);
 	}
-	else if (KeyHeld(EKeyCode::Key_4))
+	if (KeyHit(EKeyCode::Key_4))
 	{
 		g_pTeapotModel->SetMaterial(g_pWoodMaterial);
+	}
+	if (KeyHit(EKeyCode::Key_5))
+	{
+		g_pTeapotModel->SetMaterial(g_pMatGreyMaterial);
 	}
 }
 

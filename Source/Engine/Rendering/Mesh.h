@@ -1,5 +1,5 @@
 #pragma once
-#include "Rendering\DXIncludes.h"
+#include "DXGraphics\DXIncludes.h"
 #include <string>
 
 namespace Render

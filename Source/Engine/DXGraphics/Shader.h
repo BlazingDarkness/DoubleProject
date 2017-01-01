@@ -1,17 +1,10 @@
 #pragma once
-#include "Rendering\DXIncludes.h"
+#include "DXGraphics\DXIncludes.h"
 #include <string>
 #include <vector>
 
-namespace Render
+namespace DXG
 {
-	enum ShaderType
-	{
-		Pixel,
-		Vertex,
-		Compute
-	};
-
 	class Shader
 	{
 	public:
@@ -41,6 +34,9 @@ namespace Render
 		union
 		{
 			ID3D11VertexShader* m_pVertexShader;
+			ID3D11HullShader* m_pHullShader;
+			ID3D11DomainShader* m_pDomainShader;
+			ID3D11GeometryShader* m_pGeometryShader;
 			ID3D11PixelShader* m_pPixelShader;
 			ID3D11ComputeShader* m_pComputeShader;
 		};

@@ -1,32 +1,7 @@
+#define GLOBAL_LIGHT_DATA b0
+#define MATERIAL_DATA b1
 
-cbuffer GlobalLightData : register(b0)
-{
-	float4 AmbientColour	: packoffset(c0);
-	float4 CameraPos		: packoffset(c1);
-	float SpecularPower		: packoffset(c2);
-	uint NumOfLights		: packoffset(c2.y);
-	float2 Padding			: packoffset(c2.z);
-};
-
-cbuffer MaterialData : register(b1)
-{
-	float4 DiffuseColour	: packoffset(c0);
-	float Alpha				: packoffset(c1);
-	float Dirtyness			: packoffset(c1.y);
-	float Shinyness			: packoffset(c1.z);
-	uint HasAlpha			: packoffset(c1.w);
-	uint HasDirt			: packoffset(c2);
-	uint HasDiffuseTex		: packoffset(c2.y);
-	uint HasSpecTex			: packoffset(c2.z);
-	float MaterialPadding	: packoffset(c2.w);
-}
-
-Texture2D DiffuseTexture : register(t0);
-Texture2D SpecularTexture : register(t1);
-StructuredBuffer<float4> LightPosAndBrightnessBuffer : register(t2);
-StructuredBuffer<float4> LightColourBuffer : register(t3);
-
-SamplerState TextureSampler;
+#include "CommonStructs.h"
 
 struct InputPS
 {
@@ -40,6 +15,13 @@ struct OutputPS
 {
 	float4 Colour : SV_TARGET;
 };
+
+Texture2D DiffuseTexture : register(t0);
+Texture2D SpecularTexture : register(t1);
+StructuredBuffer<Light> LightBuffer : register(t2);
+
+SamplerState TextureSampler;
+
 
 
 void main( in InputPS i, out OutputPS o)
@@ -60,12 +42,12 @@ void main( in InputPS i, out OutputPS o)
 	for (uint light = 0; light < NumOfLights; ++light)
 	{
 		// Calculate diffuse lighting from the light. Equation: Diffuse = light colour * max(0, N.L)
-		float3 LightDir = LightPosAndBrightnessBuffer[light].xyz - i.WorldPos.xyz;
+		float3 LightDir = LightBuffer[light].Position - i.WorldPos.xyz;
 		float LightDist = length(LightDir);
-		float LightBrightness = LightPosAndBrightnessBuffer[light].w;
+		float LightBrightness = LightBuffer[light].Brightness;
 		LightDir /= LightDist;
 		float LightStrength = saturate(LightBrightness / LightDist);
-		float3 DiffuseColour = LightStrength * LightColourBuffer[light].xyz * saturate(dot(WorldNormal, LightDir));
+		float3 DiffuseColour = LightStrength * LightBuffer[light].Colour * saturate(dot(WorldNormal, LightDir));
 		TotalDiffuseColour += DiffuseColour;
 		
 

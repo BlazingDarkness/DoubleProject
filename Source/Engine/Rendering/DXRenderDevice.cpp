@@ -3,58 +3,6 @@
 
 namespace Render
 {
-
-	//Updated once per frame
-	struct AL16 GlobalMatrixBuffer
-	{
-		AL16 gen::CMatrix4x4 view;
-		AL16 gen::CMatrix4x4 projection;
-	} g_GlobalMatrices;
-
-	//Updated once per object
-	struct AL16 ObjectMatrixBuffer
-	{
-		AL16 gen::CMatrix4x4 world;
-	} g_ObjMatrix;
-
-	//Updated once per frame
-	struct AL16 GlobalLightDataBuffer
-	{
-		AL16 gen::CVector4 ambientColour;
-		AL16 gen::CVector4 cameraPos;
-		AL4 float specularPower;
-		AL4 unsigned int numOfLights;
-		AL4 float padding[2];
-	} g_GlobalLightData;
-
-	//Updated once per material change
-	struct AL16 MaterialBuffer
-	{
-		AL16 gen::CVector4 diffuseColour;
-		AL4 float alpha;
-		AL4 float dirtyness;
-		AL4 float shinyness;
-		AL4 unsigned int hasAlpha; //Use 1/0 for true/false
-		AL4 unsigned int hasDirt; //Use 1/0 for true/false
-		AL4 unsigned int hasDiffuseTex; //Use 1/0 for true/false
-		AL4 unsigned int hasSpecularTex; //Use 1/0 for true/false
-		AL4 float padding;
-	} g_MaterialData;
-
-	//Updated once per frame
-	struct AL16 LightPosBuffer
-	{
-		AL4 gen::CVector3 position;
-		AL4 float brightness;
-	} g_LightPosData[Scene::kMaxLights];
-
-	//Updated once per frame
-	struct AL16 LightColourBuffer
-	{
-		AL4 gen::CVector3 color;
-		AL4 float alpha;
-	} g_LightColourData[Scene::kMaxLights];
-
 	///////////////////////////
 	// Construct / destruction
 
@@ -81,15 +29,11 @@ namespace Render
 			m_pSwapChain->SetFullscreenState(false, NULL);
 		}
 
-		SAFE_RELEASE(m_pGlobalLightDataBuffer);
-		SAFE_RELEASE(m_pMaterialBuffer);
-		SAFE_RELEASE(m_pGlobalMatrixBuffer);
-		SAFE_RELEASE(m_pObjMatrixBuffer);
-
-		SAFE_RELEASE(m_pLightPosView);
-		SAFE_RELEASE(m_pLightColourView);
-		SAFE_RELEASE(m_pLightPosBuffer);
-		SAFE_RELEASE(m_pLightColourBuffer);
+		if (m_GlobalMatrixConstBuffer != nullptr) delete m_GlobalMatrixConstBuffer;
+		if (m_ObjMatrixConstBuffer != nullptr) delete m_ObjMatrixConstBuffer;
+		if (m_GlobalLightConstBuffer != nullptr) delete m_GlobalLightConstBuffer;
+		if (m_MaterialConstBuffer != nullptr) delete m_MaterialConstBuffer;
+		if (m_pLightStructuredBuffer != nullptr) delete m_pLightStructuredBuffer;
 
 		SAFE_RELEASE(m_pSamplerState);
 		SAFE_RELEASE(m_pRasterState);
@@ -274,76 +218,26 @@ namespace Render
 			return false;
 		}
 
+		m_ObjMatrixConstBuffer = new ConstBuffer<ObjectMatrix>;
+		m_GlobalMatrixConstBuffer = new ConstBuffer<GlobalMatrix>;
+		m_GlobalLightConstBuffer = new ConstBuffer<GlobalLightData>;
+		m_MaterialConstBuffer = new ConstBuffer<MaterialData>;
+		m_pLightStructuredBuffer = new DXG::StructuredBuffer<Light>;
 
-		D3D11_BUFFER_DESC cbDesc;
-		ZeroMemory(&cbDesc, sizeof(cbDesc));
-		cbDesc.ByteWidth = sizeof(GlobalMatrixBuffer); // Constant buffer data is packed into float4 data - must round up to size of float4 (16)
-		cbDesc.Usage = D3D11_USAGE_DYNAMIC;
-		cbDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-		cbDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE; // CPU is only going to write to the constants (not read them)
-		cbDesc.MiscFlags = 0;
-		if (FAILED(m_pDevice->CreateBuffer(&cbDesc, NULL, &m_pGlobalMatrixBuffer)))
+		if (!m_ObjMatrixConstBuffer->Init(m_pDevice) ||
+			!m_GlobalMatrixConstBuffer->Init(m_pDevice) ||
+			!m_GlobalLightConstBuffer->Init(m_pDevice) ||
+			!m_MaterialConstBuffer->Init(m_pDevice) ||
+			!m_pLightStructuredBuffer->Init(m_pDevice, Scene::kMaxLights))
 		{
 			return false;
 		}
-
-		cbDesc.ByteWidth = sizeof(ObjectMatrixBuffer); // Constant buffer data is packed into float4 data - must round up to size of float4 (16)
-		if (FAILED(m_pDevice->CreateBuffer(&cbDesc, NULL, &m_pObjMatrixBuffer)))
+		else
 		{
-			return false;
+			GlobalLightData& data = m_GlobalLightConstBuffer->GetMutable();
+			data.AmbientColour = { 0.1f, 0.1f, 0.1f, 1.0f };
+			data.SpecularPower = 64;
 		}
-
-		cbDesc.ByteWidth = sizeof(GlobalLightDataBuffer); // Constant buffer data is packed into float4 data - must round up to size of float4 (16)
-		if (FAILED(m_pDevice->CreateBuffer(&cbDesc, NULL, &m_pGlobalLightDataBuffer)))
-		{
-			return false;
-		}
-
-		cbDesc.ByteWidth = sizeof(MaterialBuffer); // Constant buffer data is packed into float4 data - must round up to size of float4 (16)
-		if (FAILED(m_pDevice->CreateBuffer(&cbDesc, NULL, &m_pMaterialBuffer)))
-		{
-			return false;
-		}
-
-		D3D11_BUFFER_DESC dbDesc;
-		ZeroMemory(&dbDesc, sizeof(dbDesc));
-		dbDesc.ByteWidth = sizeof(LightColourBuffer) * Scene::kMaxLights;
-		dbDesc.Usage = D3D11_USAGE_DYNAMIC;
-		dbDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-		//dbDesc.BindFlags |= D3D11_BIND_UNORDERED_ACCESS;
-		dbDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-		dbDesc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
-		dbDesc.StructureByteStride = sizeof(LightColourBuffer);
-		if (FAILED(m_pDevice->CreateBuffer(&dbDesc, NULL, &m_pLightColourBuffer)))
-		{
-			return false;
-		}
-
-		dbDesc.ByteWidth = sizeof(LightPosBuffer) * Scene::kMaxLights;
-		dbDesc.StructureByteStride = sizeof(LightPosBuffer);
-		if (FAILED(m_pDevice->CreateBuffer(&dbDesc, NULL, &m_pLightPosBuffer)))
-		{
-			return false;
-		}
-
-		D3D11_SHADER_RESOURCE_VIEW_DESC descSRV;
-		ZeroMemory(&descSRV, sizeof(descSRV));
-		descSRV.Format = DXGI_FORMAT_UNKNOWN;
-		descSRV.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
-		descSRV.Buffer.FirstElement = 0;
-		descSRV.Buffer.NumElements = Scene::kMaxLights;
-		descSRV.Buffer.ElementWidth = Scene::kMaxLights;
-
-		if (FAILED(m_pDevice->CreateShaderResourceView(m_pLightColourBuffer, &descSRV, &m_pLightColourView)))
-		{
-			return false;
-		}
-
-		if (FAILED(m_pDevice->CreateShaderResourceView(m_pLightPosBuffer, &descSRV, &m_pLightPosView)))
-		{
-			return false;
-		}
-
 
 		m_pMeshManager = new MeshManager(m_pDevice);
 		m_pSceneManager = new Scene::Manager(m_pMeshManager);
@@ -365,18 +259,19 @@ namespace Render
 		///////////////////////////
 		// Pre Render
 
-		g_GlobalMatrices.view = m_pSceneManager->GetActiveCamera()->GetViewMatrix();
-		SetPerspectiveMatrix(m_pSceneManager->GetActiveCamera());
-		MapBufferData(m_pGlobalMatrixBuffer, &g_GlobalMatrices, sizeof(GlobalMatrixBuffer));
-		SetConstantBuffer(m_pGlobalMatrixBuffer, 0, ShaderType::Vertex);
+		GlobalMatrix& globalMatrix = m_GlobalMatrixConstBuffer->GetMutable();
+		globalMatrix.ViewMatrix = m_pSceneManager->GetActiveCamera()->GetViewMatrix();
+		globalMatrix.ProjMatrix = CalcPerspectiveMatrix(m_pSceneManager->GetActiveCamera());
+		m_GlobalMatrixConstBuffer->Bind(m_pDeviceContext, DXG::ShaderType::Vertex, 0);
 
 		int numOfLights = 0;
 		for (auto light : m_pSceneManager->m_LightList)
 		{
-			g_LightPosData[numOfLights].brightness = light->GetBrightness();
-			g_LightPosData[numOfLights].position = light->WorldMatrix().Position();
-			g_LightColourData[numOfLights].color = light->GetColour();
-			g_LightColourData[numOfLights].alpha = 0.0f;
+			Light& lightData = (*m_pLightStructuredBuffer)[numOfLights];
+			lightData.Brightness = light->GetBrightness();
+			lightData.Position = light->WorldMatrix().Position();
+			lightData.Colour = light->GetColour();
+			lightData.Range = light->GetBrightness();
 			++numOfLights;
 		}
 
@@ -393,7 +288,7 @@ namespace Render
 			for (auto modelItr = modelList.begin(); modelItr != modelList.end(); ++modelItr)
 			{
 				g_ObjMatrix.world = (*modelItr)->Matrix();
-				SetConstantBuffer(m_pObjMatrixBuffer, 1, &g_ObjMatrix, sizeof(ObjectMatrixBuffer), ShaderType::Vertex);
+				SetConstantBuffer(m_pObjMatrixBuffer, 1, &g_ObjMatrix, sizeof(ObjectMatrixBuffer), DXG::ShaderType::Vertex);
 				m_pDeviceContext->DrawIndexed((*itr).first->GetIndexCount(), 0, 0);
 			}
 		}*/
@@ -408,18 +303,16 @@ namespace Render
 
 		m_pModelShader->SetShader(m_pDeviceContext);
 
-		g_GlobalLightData.ambientColour = {0.1f, 0.1f, 0.1f, 1.0f};
-		g_GlobalLightData.cameraPos = gen::CVector4(m_pSceneManager->GetActiveCamera()->WorldMatrix().Position());
-		g_GlobalLightData.specularPower = 32;
-		g_GlobalLightData.numOfLights = numOfLights;
+		GlobalLightData& globalLightData = m_GlobalLightConstBuffer->GetMutable();
+		globalLightData.CameraPos = gen::CVector4(m_pSceneManager->GetActiveCamera()->WorldMatrix().Position());
+		globalLightData.NumOfLights = numOfLights;
+		m_GlobalLightConstBuffer->Bind(m_pDeviceContext, DXG::Pixel, 0);
 
-		MapBufferData(m_pGlobalLightDataBuffer, &g_GlobalLightData, sizeof(GlobalLightDataBuffer));
-		MapBufferData(m_pLightPosBuffer, &g_LightPosData, sizeof(LightPosBuffer) * Scene::kMaxLights);
-		MapBufferData(m_pLightColourBuffer, &g_LightColourData, sizeof(LightColourBuffer) * Scene::kMaxLights);
+		m_pLightStructuredBuffer->SetDirty();
+		m_pLightStructuredBuffer->Bind(m_pDeviceContext, DXG::ShaderType::Pixel, 2);
 
-		SetConstantBuffer(m_pGlobalLightDataBuffer, 0, ShaderType::Pixel);
-		SetStructuredBuffer(m_pLightPosView, 2, ShaderType::Pixel);
-		SetStructuredBuffer(m_pLightColourView, 3, ShaderType::Pixel);
+		m_ObjMatrixConstBuffer->Bind(m_pDeviceContext, DXG::ShaderType::Vertex, 1);
+		m_MaterialConstBuffer->Bind(m_pDeviceContext, DXG::ShaderType::Pixel, 1);
 
 		for (auto itr = m_pSceneManager->m_ModelMap.begin(); itr != m_pSceneManager->m_ModelMap.end(); ++itr)
 		{
@@ -428,27 +321,25 @@ namespace Render
 
 			for (auto modelItr = modelList.begin(); modelItr != modelList.end(); ++modelItr)
 			{
-				g_ObjMatrix.world = (*modelItr)->WorldMatrix();
-				MapBufferData(m_pObjMatrixBuffer, &g_ObjMatrix, sizeof(ObjectMatrixBuffer));
-				SetConstantBuffer(m_pObjMatrixBuffer, 1, ShaderType::Vertex);
+				m_ObjMatrixConstBuffer->Set({ (*modelItr)->WorldMatrix() });
+				m_ObjMatrixConstBuffer->CommitChanges(m_pDeviceContext);
 
 				Material* pMat = (*modelItr)->GetMaterial();
-				g_MaterialData.diffuseColour = pMat->GetDiffuseColour();
-				g_MaterialData.alpha = pMat->GetAlpha();
-				g_MaterialData.dirtyness = pMat->GetDirtyness();
-				g_MaterialData.shinyness = pMat->GetShinyness();
-				g_MaterialData.hasAlpha = pMat->HasAlpha() ? 1 : 0;
-				g_MaterialData.hasDirt = pMat->HasDirt() ? 1 : 0;
-				g_MaterialData.hasDiffuseTex = pMat->HasDiffuseTex() ? 1 : 0;
-				g_MaterialData.hasSpecularTex = pMat->HasSpecularTex() ? 1 : 0;
+				MaterialData& matData = m_MaterialConstBuffer->GetMutable();
+				matData.DiffuseColour = pMat->GetDiffuseColour();
+				matData.Alpha = pMat->GetAlpha();
+				matData.Dirtyness = pMat->GetDirtyness();
+				matData.Shinyness = pMat->GetShinyness();
+				matData.HasAlpha = pMat->HasAlpha() ? 1 : 0;
+				matData.HasDirt = pMat->HasDirt() ? 1 : 0;
+				matData.HasDiffuseTex = pMat->HasDiffuseTex() ? 1 : 0;
+				matData.HasSpecTex = pMat->HasSpecularTex() ? 1 : 0;
+				m_MaterialConstBuffer->CommitChanges(m_pDeviceContext);
 
 				if (pMat->HasDiffuseTex())
 				{
 					m_pDeviceContext->PSSetShaderResources(0, 1, pMat->GetDiffuseTexPtr());
 				}
-
-				MapBufferData(m_pMaterialBuffer, &g_MaterialData, sizeof(MaterialBuffer));
-				SetConstantBuffer(m_pMaterialBuffer, 1, ShaderType::Pixel);
 
 				m_pDeviceContext->DrawIndexed((*itr).first->GetIndexCount(), 0, 0);
 			}
@@ -471,65 +362,8 @@ namespace Render
 		m_pDeviceContext->ClearDepthStencilView(m_pDepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
 	}
 
-	//Copys the data to a buffer
-	void DXRenderDevice::MapBufferData(ID3D11Buffer* buffer, void* data, unsigned int dataSize)
-	{
-		//This function's code was taken in part from Rastertek's tutorial dx11s2tut04
-		//Then heavily simplified for general use
-
-		HRESULT hr;
-		D3D11_MAPPED_SUBRESOURCE resource;
-
-		// Lock the constant buffer so it can be written to.
-		hr = m_pDeviceContext->Map(buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &resource);
-		if (FAILED(hr))
-		{
-			return;
-		}
-
-		// Copy data to the buffer
-		memcpy(resource.pData, data, dataSize);
-
-		// Unlock the constant buffer.
-		m_pDeviceContext->Unmap(buffer, 0);
-	}
-
-	//Sets a constant buffer to a shader
-	void DXRenderDevice::SetConstantBuffer(ID3D11Buffer* buffer, unsigned int bufferIndex, ShaderType type)
-	{
-		switch (type)
-		{
-		case ShaderType::Vertex:
-			m_pDeviceContext->VSSetConstantBuffers(bufferIndex, 1, &buffer);
-			break;
-		case ShaderType::Pixel:
-			m_pDeviceContext->PSSetConstantBuffers(bufferIndex, 1, &buffer);
-			break;
-		case ShaderType::Compute:
-			m_pDeviceContext->CSSetConstantBuffers(bufferIndex, 1, &buffer);
-			break;
-		}
-	}
-
-	//Sets a structured buffer to a shader
-	void DXRenderDevice::SetStructuredBuffer(ID3D11ShaderResourceView* resource, unsigned int resourceIndex, ShaderType type)
-	{
-		switch (type)
-		{
-		case ShaderType::Vertex:
-			m_pDeviceContext->VSSetShaderResources(resourceIndex, 1, &resource);
-			break;
-		case ShaderType::Pixel:
-			m_pDeviceContext->PSSetShaderResources(resourceIndex, 1, &resource);
-			break;
-		case ShaderType::Compute:
-			m_pDeviceContext->CSSetShaderResources(resourceIndex, 1, &resource);
-			break;
-		}
-	}
-
 	//Creates and sets the perspective matrix from a camera
-	void DXRenderDevice::SetPerspectiveMatrix(Scene::Camera* camera)
+	gen::CMatrix4x4 DXRenderDevice::CalcPerspectiveMatrix(Scene::Camera* camera)
 	{
 		//g_GlobalMatrices.projection.MakeIdentity();
 
@@ -546,7 +380,9 @@ namespace Render
 		DirectX::XMMATRIX mat = DirectX::XMMatrixPerspectiveFovLH(gen::ToRadians(camera->GetFOV()), hbyw * 1.5f, camera->GetNearClip(), camera->GetFarClip());
 		DirectX::XMFLOAT4X4 mat4x4;
 		DirectX::XMStoreFloat4x4(&mat4x4, mat);
-		g_GlobalMatrices.projection.Set(mat4x4.m[0]);
+		gen::CMatrix4x4 matrix;
+		matrix.Set(mat4x4.m[0]);
+		return matrix;
 
 		/*g_GlobalMatrices.projection.e00 = yScale;
 		g_GlobalMatrices.projection.e11 = xScale;

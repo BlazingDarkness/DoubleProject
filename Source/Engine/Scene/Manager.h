@@ -37,7 +37,7 @@ namespace Scene
 		void RemoveLight(Light* l);
 
 		//Creates a camera with a FOV, near clip, far clip, with positional data from a matrix
-		Camera* CreateCamera(const float FOV = 90.f, const float nearClip = 10.0f, const float farClip = 5000.f, const gen::CMatrix4x4& mat = gen::CMatrix4x4::kIdentity);
+		Camera* CreateCamera(const float FOV = 90.f, const float nearClip = 1.0f, const float farClip = 5000.f, const gen::CMatrix4x4& mat = gen::CMatrix4x4::kIdentity);
 
 		//Removes the camera from the scene
 		void RemoveCamera(Camera* c);

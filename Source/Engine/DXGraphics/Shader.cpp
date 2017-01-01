@@ -1,8 +1,8 @@
 #pragma once
-#include "Shaders\Shader.h"
+#include "DXGraphics\Shader.h"
 #include <fstream>
 
-namespace Render
+namespace DXG
 {
 	///////////////////////////
 	// Construct / destruction

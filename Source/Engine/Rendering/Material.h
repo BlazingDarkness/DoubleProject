@@ -1,5 +1,5 @@
 #pragma once
-#include "Rendering\DXIncludes.h"
+#include "DXGraphics\DXIncludes.h"
 #include "Rendering\TextureManager.h"
 #include "CVector4.h"
 
