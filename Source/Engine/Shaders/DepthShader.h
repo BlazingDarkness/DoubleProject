@@ -1,6 +1,6 @@
 #pragma once
-#include "Rendering\DXIncludes.h"
-#include "Shaders\Shader.h"
+#include "DXGraphics\DXIncludes.h"
+#include "DXGraphics\Shader.h"
 #include <string>
 
 namespace Render
@@ -31,7 +31,7 @@ namespace Render
 		void Run();
 
 	private:
-		Shader* m_pVertexShader;
-		Shader* m_pPixelShader;
+		DXG::Shader* m_pVertexShader;
+		DXG::Shader* m_pPixelShader;
 	};
 }

@@ -40,7 +40,7 @@ void main(in InputVS i, out OutputVS o)
 	float4 viewPos = mul(worldPos, ViewMatrix);
 	o.ProjPos = mul(viewPos,  ProjMatrix);
 
-	float4 normal = float4(i.Normal, 1.0f);
+	float4 normal = float4(i.Normal, 0.0f);
 	o.Normal = mul(normal, WorldMatrix);
 	o.UV = i.UV;
 }

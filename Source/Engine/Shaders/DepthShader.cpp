@@ -24,11 +24,11 @@ namespace Render
 	//Returns true if successful
 	bool DepthShader::Init(ID3D11Device* pDevice, const std::string& vertexShader, const std::string& pixelShader)
 	{
-		m_pPixelShader = new Shader();
-		if (!m_pPixelShader->Init(pDevice, ShaderType::Pixel, pixelShader)) return false;
+		m_pPixelShader = new DXG::Shader();
+		if (!m_pPixelShader->Init(pDevice, DXG::ShaderType::Pixel, pixelShader)) return false;
 
-		m_pVertexShader = new Shader();
-		if (!m_pVertexShader->Init(pDevice, ShaderType::Vertex, vertexShader)) return false;
+		m_pVertexShader = new DXG::Shader();
+		if (!m_pVertexShader->Init(pDevice, DXG::ShaderType::Vertex, vertexShader)) return false;
 
 		return true;
 	}

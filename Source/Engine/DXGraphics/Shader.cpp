@@ -17,11 +17,20 @@ namespace DXG
 	//Ensures cleanup of any DX stuff
 	Shader::~Shader()
 	{
-		SAFE_RELEASE(m_pLayout);
 		switch (m_Type)
 		{
 		case ShaderType::Vertex:
+			SAFE_RELEASE(m_pLayout);
 			SAFE_RELEASE(m_pVertexShader);
+			break;
+		case ShaderType::Hull:
+			SAFE_RELEASE(m_pHullShader);
+			break;
+		case ShaderType::Domain:
+			SAFE_RELEASE(m_pDomainShader);
+			break;
+		case ShaderType::Geometry:
+			SAFE_RELEASE(m_pGeometryShader);
 			break;
 		case ShaderType::Pixel:
 			SAFE_RELEASE(m_pPixelShader);
@@ -69,6 +78,21 @@ namespace DXG
 			if (FAILED(hr)) return false;
 		}
 			break;
+		case ShaderType::Hull:
+			hr = pDevice->CreateHullShader(byteCode.data(), static_cast<SIZE_T>(byteCode.size()), nullptr, &m_pHullShader);
+			if (FAILED(hr)) return false;
+			break;
+
+		case ShaderType::Domain:
+			hr = pDevice->CreateDomainShader(byteCode.data(), static_cast<SIZE_T>(byteCode.size()), nullptr, &m_pDomainShader);
+			if (FAILED(hr)) return false;
+			break;
+
+		case ShaderType::Geometry:
+			hr = pDevice->CreateGeometryShader(byteCode.data(), static_cast<SIZE_T>(byteCode.size()), nullptr, &m_pGeometryShader);
+			if (FAILED(hr)) return false;
+			break;
+
 		case ShaderType::Pixel:
 			hr = pDevice->CreatePixelShader(byteCode.data(), static_cast<SIZE_T>(byteCode.size()), nullptr, &m_pPixelShader);
 			if (FAILED(hr)) return false;
@@ -94,6 +118,15 @@ namespace DXG
 		case ShaderType::Vertex:
 			pContext->VSSetShader(m_pVertexShader, NULL, 0);
 			pContext->IASetInputLayout(m_pLayout);
+			break;
+		case ShaderType::Hull:
+			pContext->HSSetShader(m_pHullShader, NULL, 0);
+			break;
+		case ShaderType::Domain:
+			pContext->DSSetShader(m_pDomainShader, NULL, 0);
+			break;
+		case ShaderType::Geometry:
+			pContext->GSSetShader(m_pGeometryShader, NULL, 0);
 			break;
 		case ShaderType::Pixel:
 			pContext->PSSetShader(m_pPixelShader, NULL, 0);
