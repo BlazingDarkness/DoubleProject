@@ -19,6 +19,8 @@ struct OutputPS
 Texture2D DiffuseTexture : register(t0);
 Texture2D SpecularTexture : register(t1);
 StructuredBuffer<Light> LightBuffer : register(t2);
+StructuredBuffer<uint> LightIndexList : register(t3);
+Texture2D<uint2> LightGrid : register(t4);
 
 SamplerState TextureSampler;
 
@@ -39,8 +41,13 @@ void main( in InputPS i, out OutputPS o)
 	float3 TotalDiffuseColour = AmbientColour.rgb;
 	float3 TotalSpecularColour = 0;
 
-	for (uint light = 0; light < NumOfLights; ++light)
+	uint2 Tile = uint2((uint)(i.ScreenPos.x + 15.0f), (uint)(i.ScreenPos.y + 15.0f)) / 16;
+	uint TileStart = LightGrid[Tile].x;
+	uint TileEnd = TileStart + LightGrid[Tile].y;
+
+	for (uint index = TileStart; index < TileEnd; ++index)
 	{
+		uint light = LightIndexList[index];
 		// Calculate diffuse lighting from the light. Equation: Diffuse = light colour * max(0, N.L)
 		float3 LightDir = LightBuffer[light].Position - i.WorldPos.xyz;
 		float LightDist = length(LightDir);
@@ -49,7 +56,7 @@ void main( in InputPS i, out OutputPS o)
 		float LightStrength = saturate(LightBrightness / LightDist);
 		float3 DiffuseColour = LightStrength * LightBuffer[light].Colour * saturate(dot(WorldNormal, LightDir));
 		TotalDiffuseColour += DiffuseColour;
-		
+
 
 		// Calculate specular lighting from the 1st light. Standard equation: Specular = light colour * max(0, (N.H)^p)
 		// Slight tweak here: multiply by diffuse colour rather than light colour

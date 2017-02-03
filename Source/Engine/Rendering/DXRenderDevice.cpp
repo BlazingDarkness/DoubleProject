@@ -22,6 +22,7 @@ namespace Render
 
 		if (m_pModelShader != nullptr) delete m_pModelShader;
 		if (m_pModelShader != nullptr) delete m_pDepthShader;
+		if (m_pLightCullCS != nullptr) delete m_pLightCullCS;
 
 		// Before shutting down set to windowed mode or when you release the swap chain it will throw an exception.
 		if (m_pSwapChain)
@@ -33,7 +34,12 @@ namespace Render
 		if (m_ObjMatrixConstBuffer != nullptr) delete m_ObjMatrixConstBuffer;
 		if (m_GlobalLightConstBuffer != nullptr) delete m_GlobalLightConstBuffer;
 		if (m_MaterialConstBuffer != nullptr) delete m_MaterialConstBuffer;
+		if (m_GlobalThreadConstBuffer != nullptr) delete m_GlobalThreadConstBuffer;
 		if (m_pLightStructuredBuffer != nullptr) delete m_pLightStructuredBuffer;
+		if (m_pFrustumStructuredBuffer != nullptr) delete m_pFrustumStructuredBuffer;
+		if (m_pLightIndexStructuredBuffer != nullptr) delete m_pLightIndexStructuredBuffer;
+		if (m_pLightOffsetStructuredBuffer != nullptr) delete m_pLightOffsetStructuredBuffer;
+		if (m_pLightGrid != nullptr) delete m_pLightGrid;
 
 		SAFE_RELEASE(m_pSamplerState);
 		SAFE_RELEASE(m_pRasterState);
@@ -218,17 +224,31 @@ namespace Render
 			return false;
 		}
 
+		m_pLightCullCS = new DXG::Shader;
+		if (!m_pLightCullCS->Init(m_pDevice, DXG::ShaderType::Compute, ".\\LightCull.cso"))
+		{
+			return false;
+		}
+
 		m_ObjMatrixConstBuffer = new ConstBuffer<ObjectMatrix>;
 		m_GlobalMatrixConstBuffer = new ConstBuffer<GlobalMatrix>;
 		m_GlobalLightConstBuffer = new ConstBuffer<GlobalLightData>;
 		m_MaterialConstBuffer = new ConstBuffer<MaterialData>;
+		m_GlobalThreadConstBuffer = new ConstBuffer<GlobalThreadData>;
 		m_pLightStructuredBuffer = new DXG::StructuredBuffer<Light>;
+		m_pLightIndexStructuredBuffer = new DXG::StructuredBuffer<DXG::uint>;
+		m_pLightOffsetStructuredBuffer = new DXG::StructuredBuffer<DXG::uint>;
+		m_pLightGrid = new Texture2D;
 
 		if (!m_ObjMatrixConstBuffer->Init(m_pDevice) ||
 			!m_GlobalMatrixConstBuffer->Init(m_pDevice) ||
 			!m_GlobalLightConstBuffer->Init(m_pDevice) ||
 			!m_MaterialConstBuffer->Init(m_pDevice) ||
-			!m_pLightStructuredBuffer->Init(m_pDevice, Scene::kMaxLights))
+			!m_GlobalThreadConstBuffer->Init(m_pDevice) ||
+			!m_pLightStructuredBuffer->Init(m_pDevice, Scene::kMaxLights, DXG::CPUAccess::Write) ||
+			!m_pLightIndexStructuredBuffer->Init(m_pDevice, ((m_ScreenHeight + 15) / 16) * ((m_ScreenWidth + 15) / 16) * 256, DXG::CPUAccess::None, true) ||
+			!m_pLightOffsetStructuredBuffer->Init(m_pDevice, 4, DXG::CPUAccess::None, true, true) ||
+			!m_pLightGrid->Init(m_pDevice, (m_ScreenWidth + 15) / 16, (m_ScreenHeight + 15) / 16))
 		{
 			return false;
 		}
@@ -237,6 +257,10 @@ namespace Render
 			GlobalLightData& data = m_GlobalLightConstBuffer->GetMutable();
 			data.AmbientColour = { 0.1f, 0.1f, 0.1f, 1.0f };
 			data.SpecularPower = 64;
+
+			//GlobalThreadData& data2 = m_GlobalThreadConstBuffer->GetMutable();
+			
+			m_GlobalThreadConstBuffer->Set({ { 16,16,1,0 },{ (m_ScreenWidth + 15) / 16 , (m_ScreenHeight + 15) / 16, 1, 0 } });
 		}
 
 		m_pMeshManager = new MeshManager(m_pDevice);
@@ -274,6 +298,7 @@ namespace Render
 			lightData.Range = light->GetBrightness();
 			++numOfLights;
 		}
+		m_pLightStructuredBuffer->SetDirty();
 
 		///////////////////////////
 		// Depth pre pass
@@ -298,6 +323,32 @@ namespace Render
 		// Lighting compute
 
 
+
+		ID3D11UnorderedAccessView* uavViews[1];
+		uavViews[0] = m_pLightOffsetStructuredBuffer->GetUnorderedAccessView();
+		//m_pDeviceContext->OMSetRenderTargetsAndUnorderedAccessViews(0, nullptr, nullptr, 0, 0, nullptr, nullptr);
+		//m_pDeviceContext->OMSetRenderTargetsAndUnorderedAccessViews(1, &m_pRenderTargetView, m_pDepthStencilView, 2, 1, uavViews, nullptr);
+		//m_pLightOffsetStructuredBuffer->Clear(m_pDeviceContext);
+		DXG::uint initCounts[] = {0,0,0,0};
+
+		m_pLightCullCS->SetShader(m_pDeviceContext);
+		m_GlobalThreadConstBuffer->Bind(m_pDeviceContext, DXG::ShaderType::Compute, 0);
+		m_GlobalLightConstBuffer->Bind(m_pDeviceContext, DXG::ShaderType::Compute, 1);
+		m_pLightStructuredBuffer->Bind(m_pDeviceContext, DXG::ShaderType::Compute, 0);
+		m_pLightIndexStructuredBuffer->Bind(m_pDeviceContext, DXG::ShaderType::Compute, 0, DXG::BufferType::UAV);
+		m_pLightGrid->Bind(m_pDeviceContext, DXG::ShaderType::Compute, 1, DXG::BufferType::UAV);
+		m_pLightOffsetStructuredBuffer->Bind(m_pDeviceContext, DXG::ShaderType::Compute, 2, DXG::BufferType::UAV, initCounts);
+
+		m_pDeviceContext->Dispatch((m_ScreenWidth + 15) / 16, (m_ScreenHeight + 15) / 16,1);
+
+		m_GlobalThreadConstBuffer->Unbind(m_pDeviceContext, DXG::ShaderType::Compute, 0);
+		m_GlobalLightConstBuffer->Unbind(m_pDeviceContext, DXG::ShaderType::Compute, 1);
+		m_pLightStructuredBuffer->Unbind(m_pDeviceContext, DXG::ShaderType::Compute, 0);
+		m_pLightIndexStructuredBuffer->Unbind(m_pDeviceContext, DXG::ShaderType::Compute, 0, DXG::BufferType::UAV);
+		m_pLightGrid->Unbind(m_pDeviceContext, DXG::ShaderType::Compute, 1, DXG::BufferType::UAV);
+		m_pLightOffsetStructuredBuffer->Unbind(m_pDeviceContext, DXG::ShaderType::Compute, 2, DXG::BufferType::UAV);
+		
+
 		///////////////////////////
 		// Lighting pass
 
@@ -306,13 +357,18 @@ namespace Render
 		GlobalLightData& globalLightData = m_GlobalLightConstBuffer->GetMutable();
 		globalLightData.CameraPos = gen::CVector4(m_pSceneManager->GetActiveCamera()->WorldMatrix().Position());
 		globalLightData.NumOfLights = numOfLights;
-		m_GlobalLightConstBuffer->Bind(m_pDeviceContext, DXG::Pixel, 0);
+		globalLightData.ScreenWidth = m_ScreenWidth;
+		globalLightData.ScreenHeight = m_ScreenHeight;
 
-		m_pLightStructuredBuffer->SetDirty();
-		m_pLightStructuredBuffer->Bind(m_pDeviceContext, DXG::ShaderType::Pixel, 2);
 
+		m_GlobalMatrixConstBuffer->Bind(m_pDeviceContext, DXG::ShaderType::Vertex, 0);
 		m_ObjMatrixConstBuffer->Bind(m_pDeviceContext, DXG::ShaderType::Vertex, 1);
+
+		m_GlobalLightConstBuffer->Bind(m_pDeviceContext, DXG::ShaderType::Pixel, 0);
 		m_MaterialConstBuffer->Bind(m_pDeviceContext, DXG::ShaderType::Pixel, 1);
+		m_pLightStructuredBuffer->Bind(m_pDeviceContext, DXG::ShaderType::Pixel, 2);
+		m_pLightIndexStructuredBuffer->Bind(m_pDeviceContext, DXG::ShaderType::Pixel, 3);
+		m_pLightGrid->Bind(m_pDeviceContext, DXG::ShaderType::Pixel, 4);
 
 		for (auto itr = m_pSceneManager->m_ModelMap.begin(); itr != m_pSceneManager->m_ModelMap.end(); ++itr)
 		{
@@ -344,6 +400,15 @@ namespace Render
 				m_pDeviceContext->DrawIndexed((*itr).first->GetIndexCount(), 0, 0);
 			}
 		}
+
+		m_GlobalMatrixConstBuffer->Unbind(m_pDeviceContext, DXG::ShaderType::Vertex, 0);
+		m_ObjMatrixConstBuffer->Unbind(m_pDeviceContext, DXG::ShaderType::Vertex, 1);
+
+		m_GlobalLightConstBuffer->Unbind(m_pDeviceContext, DXG::ShaderType::Pixel, 0);
+		m_MaterialConstBuffer->Unbind(m_pDeviceContext, DXG::ShaderType::Pixel, 1);
+		m_pLightStructuredBuffer->Unbind(m_pDeviceContext, DXG::ShaderType::Pixel, 2);
+		m_pLightIndexStructuredBuffer->Unbind(m_pDeviceContext, DXG::ShaderType::Pixel, 3);
+		m_pLightGrid->Unbind(m_pDeviceContext, DXG::ShaderType::Pixel, 4);
 
 		m_pSwapChain->Present(0, 0);
 	}

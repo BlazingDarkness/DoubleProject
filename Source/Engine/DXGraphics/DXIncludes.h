@@ -24,4 +24,18 @@ namespace DXG
 		Pixel,
 		Compute
 	};
+
+	enum CPUAccess : int
+	{
+		None = 0,
+		Read = 1 << 0,
+		Write = 1 << 1,
+	};
+
+	enum BufferType
+	{
+		Constant,
+		Structured,
+		UAV
+	};
 }

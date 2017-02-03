@@ -3,6 +3,7 @@
 #include "DXGraphics\DXIncludes.h"
 #include "DXGraphics\ConstantBuffer.h"
 #include "DXGraphics\StructuredBuffer.h"
+#include "DXGraphics\Texture2D.h"
 #include "Rendering\MeshManager.h"
 #include "Rendering\TextureManager.h"
 #include "Rendering\MaterialManager.h"
@@ -86,9 +87,21 @@ namespace Render
 		ConstBuffer<ObjectMatrix>* m_ObjMatrixConstBuffer;
 		ConstBuffer<GlobalLightData>* m_GlobalLightConstBuffer;
 		ConstBuffer<MaterialData>* m_MaterialConstBuffer;
+		ConstBuffer<GlobalThreadData>* m_GlobalThreadConstBuffer;
 
 		//Structured Buffers
-		DXG::StructuredBuffer<Light>* m_pLightStructuredBuffer;
+		template<typename T>
+		using StructuredBuffer = DXG::StructuredBuffer<T>;
+
+		StructuredBuffer<Light>* m_pLightStructuredBuffer;
+		StructuredBuffer<Frustum>* m_pFrustumStructuredBuffer;
+		StructuredBuffer<DXG::uint>* m_pLightIndexStructuredBuffer;
+		StructuredBuffer<DXG::uint>* m_pLightOffsetStructuredBuffer;
+
+		//Texture 2Ds
+		using Texture2D = DXG::Texture2D;
+
+		Texture2D* m_pLightGrid;
 
 		unsigned int m_ScreenWidth;
 		unsigned int m_ScreenHeight;
@@ -101,5 +114,6 @@ namespace Render
 
 		ModelShader* m_pModelShader = nullptr;
 		DepthShader* m_pDepthShader = nullptr;
+		DXG::Shader* m_pLightCullCS = nullptr;
 	};
 }

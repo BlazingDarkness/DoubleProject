@@ -39,7 +39,6 @@
     <ClCompile Include="..\..\3rd Party\Math\CVector4.cpp" />
     <ClCompile Include="..\..\3rd Party\Math\MathIO.cpp" />
     <ClCompile Include="..\Engine\DXGraphics\DXCommon.cpp" />
-    <ClCompile Include="..\Engine\DXGraphics\DXDevice.cpp" />
     <ClCompile Include="..\Engine\DXGraphics\Shader.cpp" />
     <ClCompile Include="..\Engine\Engine.cpp" />
     <ClCompile Include="..\Engine\Rendering\DXRenderDevice.cpp" />
@@ -91,13 +90,12 @@
     <ClInclude Include="..\..\3rd Party\rmxftmpl.h" />
     <ClInclude Include="..\Engine\DXGraphics\ConstantBuffer.h" />
     <ClInclude Include="..\Engine\DXGraphics\DXCommon.h" />
-    <ClInclude Include="..\Engine\DXGraphics\DXDevice.h" />
     <ClInclude Include="..\Engine\DXGraphics\DXIncludes.h" />
     <ClInclude Include="..\Engine\DXGraphics\Shader.h" />
     <ClInclude Include="..\Engine\DXGraphics\StructuredBuffer.h" />
+    <ClInclude Include="..\Engine\DXGraphics\Texture2D.h" />
     <ClInclude Include="..\Engine\Engine.h" />
     <ClInclude Include="..\Engine\Rendering\DXRenderDevice.h" />
-    <ClInclude Include="..\Engine\Rendering\IRenderer.h" />
     <ClInclude Include="..\Engine\Rendering\Material.h" />
     <ClInclude Include="..\Engine\Rendering\MaterialManager.h" />
     <ClInclude Include="..\Engine\Rendering\Mesh.h" />
@@ -115,11 +113,22 @@
     <ClInclude Include="..\Interface\IRenderDevice.h" />
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="..\Engine\Shaders\LightCS.hlsl">
+    <FxCompile Include="..\Engine\Shaders\FrustumCalc.hlsl">
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">5.0</ShaderModel>
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">5.0</ShaderModel>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Compute</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Compute</ShaderType>
+    </FxCompile>
+    <FxCompile Include="..\Engine\Shaders\LightCull.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">5.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">5.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.0</ShaderModel>
+      <FileType>Document</FileType>
     </FxCompile>
     <FxCompile Include="..\Engine\Shaders\ModelPS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
@@ -209,7 +218,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>..\Engine;..\..\3rd Party\Math;..\..\3rd Party\Common;..\..\3rd Party;..\Interface;C:\Users\mhartley3\Documents\Visual Studio 2015\Projects\DoubleProject\Source\Engine\Rendering;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\Engine;..\..\3rd Party\Math;..\..\3rd Party\Common;..\..\3rd Party;..\Interface;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <AdditionalDependencies>winmm.lib;d3dxof.lib;dxguid.lib;d3dx9d.lib;d3d9.lib;d3d11.lib;d3dx11d.lib;%(AdditionalDependencies)</AdditionalDependencies>

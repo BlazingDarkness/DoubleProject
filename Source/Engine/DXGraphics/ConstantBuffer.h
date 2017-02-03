@@ -103,6 +103,32 @@ namespace DXG
 			}
 		}
 
+		void Unbind(ID3D11DeviceContext* pDeviceContext, ShaderType sType, uint index)
+		{
+			ID3D11Buffer* clearBuffer[] = {nullptr};
+			switch (sType)
+			{
+			case ShaderType::Vertex:
+				pDeviceContext->VSSetConstantBuffers(index, 1, clearBuffer);
+				return;
+			case ShaderType::Hull:
+				pDeviceContext->HSSetConstantBuffers(index, 1, clearBuffer);
+				return;
+			case ShaderType::Domain:
+				pDeviceContext->DSSetConstantBuffers(index, 1, clearBuffer);
+				return;
+			case ShaderType::Geometry:
+				pDeviceContext->GSSetConstantBuffers(index, 1, clearBuffer);
+				return;
+			case ShaderType::Pixel:
+				pDeviceContext->PSSetConstantBuffers(index, 1, clearBuffer);
+				return;
+			case ShaderType::Compute:
+				pDeviceContext->CSSetConstantBuffers(index, 1, clearBuffer);
+				return;
+			}
+		}
+
 	private:
 		StructType m_Data;
 		uint m_DataSize;

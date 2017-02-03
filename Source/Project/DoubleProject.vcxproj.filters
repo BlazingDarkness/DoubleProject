@@ -144,9 +144,6 @@
     <ClCompile Include="..\Engine\DXGraphics\Shader.cpp">
       <Filter>Engine\DXGraphics</Filter>
     </ClCompile>
-    <ClCompile Include="..\Engine\DXGraphics\DXDevice.cpp">
-      <Filter>Engine\DXGraphics</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\3rd Party\Common\CFatalException.h">
@@ -305,14 +302,11 @@
     <ClInclude Include="..\Engine\DXGraphics\Shader.h">
       <Filter>Engine\DXGraphics</Filter>
     </ClInclude>
-    <ClInclude Include="..\Engine\Rendering\IRenderer.h">
-      <Filter>Engine\Rendering</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Engine\DXGraphics\DXDevice.h">
-      <Filter>Engine\DXGraphics</Filter>
-    </ClInclude>
     <ClInclude Include="..\Engine\Shaders\CommonStructs.h">
       <Filter>Engine\Shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Engine\DXGraphics\Texture2D.h">
+      <Filter>Engine\DXGraphics</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -328,7 +322,10 @@
     <FxCompile Include="..\Engine\Shaders\DepthPS.hlsl">
       <Filter>Engine\Shaders</Filter>
     </FxCompile>
-    <FxCompile Include="..\Engine\Shaders\LightCS.hlsl">
+    <FxCompile Include="..\Engine\Shaders\FrustumCalc.hlsl">
+      <Filter>Engine\Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Engine\Shaders\LightCull.hlsl">
       <Filter>Engine\Shaders</Filter>
     </FxCompile>
   </ItemGroup>
