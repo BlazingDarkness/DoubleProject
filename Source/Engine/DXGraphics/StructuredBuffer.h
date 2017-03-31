@@ -1,11 +1,12 @@
 #pragma once
 #include "DXGraphics\DXIncludes.h"
 #include "DXGraphics\DXCommon.h"
+#include "DXGraphics\IDXResource.h"
 
 namespace DXG
 {
 	template <typename StructType>
-	class StructuredBuffer
+	class StructuredBuffer : public IDXResource
 	{
 	public:
 		///////////////////////////
@@ -31,7 +32,7 @@ namespace DXG
 		}
 
 		//Initialises the buffer with a set size
-		bool Init(ID3D11Device* pDevice, uint size, CPUAccess access = CPUAccess::None, bool isUAV = false, bool isCounter = false)
+		bool Init(ID3D11Device* pDevice, uint size, CPUAccess access = CPUAccess::None, bool isUAV = false)
 		{
 			//static_assert(sizeof(StructType) % 16 == 0, "Struct not divisable by 16 bytes");
 
@@ -83,7 +84,7 @@ namespace DXG
 				descSRV.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
 				descSRV.Buffer.FirstElement = 0;
 				descSRV.Buffer.NumElements = size;
-				descSRV.Buffer.ElementWidth = sizeof(StructType);
+				descSRV.Buffer.ElementWidth = size;
 				if (FAILED(pDevice->CreateShaderResourceView(m_pDataBuffer, &descSRV, &m_pResourceView)))
 				{
 					return false;
@@ -98,7 +99,7 @@ namespace DXG
 				uavDesc.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
 				uavDesc.Buffer.FirstElement = 0;
 				uavDesc.Buffer.NumElements = size;
-				uavDesc.Buffer.Flags = isCounter ? D3D11_BUFFER_UAV_FLAG_COUNTER : 0;
+				uavDesc.Buffer.Flags = 0;
 
 				if (FAILED(pDevice->CreateUnorderedAccessView(m_pDataBuffer, &uavDesc, &m_pUnorderedAccessView)))
 				{
@@ -143,11 +144,11 @@ namespace DXG
 		}
 
 		//Sets the buffer to be accessible to the specific shader
-		void Bind(ID3D11DeviceContext* pDeviceContext, ShaderType sType, uint index, BufferType type = BufferType::Structured, uint* initialCounts = nullptr)
+		virtual void Bind(ID3D11DeviceContext* pDeviceContext, ShaderType sType, uint index, BufferType bufferType)
 		{
 			CommitChanges(pDeviceContext);
 
-			if (type == BufferType::Structured && m_pResourceView != nullptr)
+			if (bufferType == BufferType::Structured && m_pResourceView != nullptr)
 			{
 				switch (sType)
 				{
@@ -171,20 +172,20 @@ namespace DXG
 					break;
 				}
 			}
-			else if (type == BufferType::UAV && m_pUnorderedAccessView != nullptr)
+			else if (bufferType == BufferType::UAV && m_pUnorderedAccessView != nullptr)
 			{
 				switch (sType)
 				{
 				case ShaderType::Compute:
-					pDeviceContext->CSSetUnorderedAccessViews(index, 1, &m_pUnorderedAccessView, initialCounts);
+					pDeviceContext->CSSetUnorderedAccessViews(index, 1, &m_pUnorderedAccessView, NULL);
 					break;
 				}
 			}
 		}
 
-		void Unbind(ID3D11DeviceContext* pDeviceContext, ShaderType sType, uint index, BufferType type = BufferType::Structured)
+		virtual void Unbind(ID3D11DeviceContext* pDeviceContext, ShaderType sType, uint index, BufferType bufferType)
 		{
-			if (type == BufferType::Structured && m_pResourceView != nullptr)
+			if (bufferType == BufferType::Structured && m_pResourceView != nullptr)
 			{
 				ID3D11ShaderResourceView* clearView[] = {nullptr};
 				switch (sType)
@@ -209,7 +210,7 @@ namespace DXG
 					break;
 				}
 			}
-			else if (type == BufferType::UAV && m_pUnorderedAccessView != nullptr)
+			else if (bufferType == BufferType::UAV && m_pUnorderedAccessView != nullptr)
 			{
 				ID3D11UnorderedAccessView* clearView[] = { nullptr };
 				switch (sType)

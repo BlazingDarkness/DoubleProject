@@ -1,11 +1,12 @@
 #pragma once
 #include "DXGraphics\DXIncludes.h"
 #include "DXGraphics\DXCommon.h"
+#include "DXGraphics\IDXResource.h"
 
 namespace DXG
 {
 	//template <typename StructType>
-	class Texture2D
+	class Texture2D : public IDXResource
 	{
 	public:
 		///////////////////////////
@@ -82,9 +83,9 @@ namespace DXG
 		}
 
 		//Sets the texture to be accessible to the specific shader
-		void Bind(ID3D11DeviceContext* pDeviceContext, ShaderType sType, uint index, BufferType type = BufferType::Structured)
+		virtual void Bind(ID3D11DeviceContext* pDeviceContext, ShaderType sType, uint index, BufferType bufferType)
 		{
-			if (type == BufferType::Structured && m_pResourceView != nullptr)
+			if (bufferType == BufferType::Structured && m_pResourceView != nullptr)
 			{
 				switch (sType)
 				{
@@ -108,7 +109,7 @@ namespace DXG
 					break;
 				}
 			}
-			else if (type == BufferType::UAV && m_pUnorderedAccessView != nullptr)
+			else if (bufferType == BufferType::UAV && m_pUnorderedAccessView != nullptr)
 			{
 				switch (sType)
 				{
@@ -119,9 +120,9 @@ namespace DXG
 			}
 		}
 
-		void Unbind(ID3D11DeviceContext* pDeviceContext, ShaderType sType, uint index, BufferType type = BufferType::Structured)
+		virtual void Unbind(ID3D11DeviceContext* pDeviceContext, ShaderType sType, uint index, BufferType bufferType)
 		{
-			if (type == BufferType::Structured && m_pResourceView != nullptr)
+			if (bufferType == BufferType::Structured && m_pResourceView != nullptr)
 			{
 				ID3D11ShaderResourceView* clearView[] = { nullptr };
 				switch (sType)
@@ -146,7 +147,7 @@ namespace DXG
 					break;
 				}
 			}
-			else if (type == BufferType::UAV && m_pUnorderedAccessView != nullptr)
+			else if (bufferType == BufferType::UAV && m_pUnorderedAccessView != nullptr)
 			{
 				ID3D11UnorderedAccessView* clearView[] = { nullptr };
 				switch (sType)

@@ -1,11 +1,12 @@
 #pragma once
 #include "DXGraphics\DXIncludes.h"
 #include "DXGraphics\DXCommon.h"
+#include "DXGraphics\IDXResource.h"
 
 namespace DXG
 {
 	template <typename StructType>
-	class ConstantBuffer
+	class ConstantBuffer : public IDXResource
 	{
 	public:
 		///////////////////////////
@@ -76,7 +77,7 @@ namespace DXG
 		}
 
 		//Sets the buffer to be accessible to the specific shader
-		void Bind(ID3D11DeviceContext* pDeviceContext, ShaderType sType, uint index)
+		virtual void Bind(ID3D11DeviceContext* pDeviceContext, ShaderType sType, uint index, BufferType bufferType)
 		{
 			CommitChanges(pDeviceContext);
 
@@ -103,7 +104,7 @@ namespace DXG
 			}
 		}
 
-		void Unbind(ID3D11DeviceContext* pDeviceContext, ShaderType sType, uint index)
+		void Unbind(ID3D11DeviceContext* pDeviceContext, ShaderType sType, uint index, BufferType bufferType)
 		{
 			ID3D11Buffer* clearBuffer[] = {nullptr};
 			switch (sType)
