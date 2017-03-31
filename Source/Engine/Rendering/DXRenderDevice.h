@@ -4,10 +4,10 @@
 #include "DXGraphics\ConstantBuffer.h"
 #include "DXGraphics\StructuredBuffer.h"
 #include "DXGraphics\Texture2D.h"
+#include "DXGraphics\RenderPass.h"
 #include "Rendering\MeshManager.h"
 #include "Rendering\TextureManager.h"
 #include "Rendering\MaterialManager.h"
-#include "Shaders\ModelShader.h"
 #include "Shaders\DepthShader.h"
 #include "Shaders\CommonStructs.h"
 #include "Scene\Manager.h"
@@ -88,6 +88,7 @@ namespace Render
 		ConstBuffer<GlobalLightData>* m_GlobalLightConstBuffer;
 		ConstBuffer<MaterialData>* m_MaterialConstBuffer;
 		ConstBuffer<GlobalThreadData>* m_GlobalThreadConstBuffer;
+		ConstBuffer<CopyDetails>* m_BufferCopyConstBuffer;
 
 		//Structured Buffers
 		template<typename T>
@@ -97,6 +98,7 @@ namespace Render
 		StructuredBuffer<Frustum>* m_pFrustumStructuredBuffer;
 		StructuredBuffer<DXG::uint>* m_pLightIndexStructuredBuffer;
 		StructuredBuffer<DXG::uint>* m_pLightOffsetStructuredBuffer;
+		StructuredBuffer<DXG::uint>* m_pZeroedStructuredBuffer;
 
 		//Texture 2Ds
 		using Texture2D = DXG::Texture2D;
@@ -111,9 +113,16 @@ namespace Render
 		TextureManager* m_pTextureManager = nullptr;
 		MaterialManager* m_pMaterialManager = nullptr;
 
-
-		ModelShader* m_pModelShader = nullptr;
+		//Shaders
 		DepthShader* m_pDepthShader = nullptr;
+		DXG::Shader* m_pModelVS = nullptr;
+		DXG::Shader* m_pModelPS = nullptr;
 		DXG::Shader* m_pLightCullCS = nullptr;
+		DXG::Shader* m_pCopyCS  = nullptr;
+		
+		//Render Passes
+		DXG::RenderPass m_CopyPass;
+		DXG::RenderPass m_LightCullPass;
+		DXG::RenderPass m_FullRenderPass;
 	};
 }

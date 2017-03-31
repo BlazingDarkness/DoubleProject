@@ -3,9 +3,8 @@
 #define GLOBAL_LIGHT_DATA b1
 #include "CommonStructs.h"
 
-static const uint TILE_SIZE = 16;
 static const uint GROUP_SIZE = TILE_SIZE * TILE_SIZE;
-static const uint MAX_LIGHTS_PER_TILE = 1024;
+static const uint MAX_LIGHTS_PER_TILE = 512;
 
 StructuredBuffer<Light> LightBuffer : register(t0);
 StructuredBuffer<Frustum> FrustumBuffer : register(t1);
@@ -22,11 +21,10 @@ groupshared uint LightIndexListOffset;
 [numthreads(TILE_SIZE, TILE_SIZE, 1)]
 void main(CSInput i)
 {
-
 	if (i.GroupIndex == 0) // Only need one thread to initialise variables
 	{
 		TileLightCount = 0;
-		GroupFrustum = FrustumBuffer[i.GroupID.x + (i.GroupID.y * NumOfThreadGroups.x)];
+		//GroupFrustum = FrustumBuffer[i.GroupID.x + (i.GroupID.y * NumOfThreadGroups.x)];
 	}
 
 	GroupMemoryBarrierWithGroupSync();
@@ -38,12 +36,9 @@ void main(CSInput i)
 
 		//if() cull code
 		//{
-		if ((i.GroupID.x + i.GroupID.y) % 2 == 0)
-		{
 			uint tileLightListIndex;
 			InterlockedAdd(TileLightCount, 1, tileLightListIndex);
-			if(tileLightListIndex < MAX_LIGHTS_PER_TILE)TileLightList[tileLightListIndex] = lightIndex;
-		}
+			if(tileLightListIndex < MAX_LIGHTS_PER_TILE) TileLightList[tileLightListIndex] = lightIndex;
 		//}
 	}
 
@@ -51,15 +46,16 @@ void main(CSInput i)
 
 	if (i.GroupIndex == 0)
 	{
+		LightIndexListOffset = 0;
 		InterlockedAdd(LightIndexListStart[0], TileLightCount, LightIndexListOffset);
 		LightGrid[i.GroupID.xy] = uint2(LightIndexListOffset, TileLightCount);
 	}
 
 	GroupMemoryBarrierWithGroupSync();
 
-	for (uint index = i.GroupIndex; index < NumOfLights; index += GROUP_SIZE)
+	for (uint index = i.GroupIndex; index < TileLightCount; index += GROUP_SIZE)
 	{
-		LightIndexList[index + LightIndexListOffset] = TileLightList[index];
+		LightIndexList[LightIndexListOffset + index] = TileLightList[index];
 	}
 
 	GroupMemoryBarrierWithGroupSync();

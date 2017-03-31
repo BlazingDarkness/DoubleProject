@@ -28,20 +28,19 @@ SamplerState TextureSampler;
 
 void main( in InputPS i, out OutputPS o)
 {
-	// Renormalise world normal for the pixel as it has been interpolated from the vertex world normals & may not be length 1
 	float3 WorldNormal = normalize(i.WorldNormal.xyz);
 
 	////////////////////////
 	// Lighting preparation
 
-	// Get normalised vector to camera for specular equation (common for all lights)
+	// Get normalised vector to camera for specular equation
 	float3 CameraDir = normalize(CameraPos.xyz - i.WorldPos.xyz);
 
 	// Accumulate diffuse and specular colour effect from each light
 	float3 TotalDiffuseColour = AmbientColour.rgb;
 	float3 TotalSpecularColour = 0;
 
-	uint2 Tile = uint2((uint)(i.ScreenPos.x + 15.0f), (uint)(i.ScreenPos.y + 15.0f)) / 16;
+	uint2 Tile = uint2((uint)(i.ScreenPos.x), (uint)(i.ScreenPos.y)) / 16;
 	uint TileStart = LightGrid[Tile].x;
 	uint TileEnd = TileStart + LightGrid[Tile].y;
 
@@ -55,11 +54,9 @@ void main( in InputPS i, out OutputPS o)
 		LightDir /= LightDist;
 		float LightStrength = saturate(LightBrightness / LightDist);
 		float3 DiffuseColour = LightStrength * LightBuffer[light].Colour * saturate(dot(WorldNormal, LightDir));
-		TotalDiffuseColour += DiffuseColour;
-
+		TotalDiffuseColour += DiffuseColour * smoothstep(0.0f, LightBuffer[light].Range, LightBuffer[light].Range - LightDist);
 
 		// Calculate specular lighting from the 1st light. Standard equation: Specular = light colour * max(0, (N.H)^p)
-		// Slight tweak here: multiply by diffuse colour rather than light colour
 		float3 Halfway = normalize(CameraDir + LightDir);
 		TotalSpecularColour += DiffuseColour * saturate(pow(dot(WorldNormal, Halfway), SpecularPower)) * Shinyness;
 	}

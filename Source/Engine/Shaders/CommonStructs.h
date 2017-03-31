@@ -10,11 +10,14 @@
 #define Vec4 gen::CVector4
 #define Vec3 gen::CVector3
 #define Vec2 gen::CVector2
+
 #define GLOBAL_MATRIX b0
 #define OBJECT_MATRIX b1
 #define MATERIAL_DATA b1
-#define GLOBAL_LIGHT_DATA b0
-#define GLOBAL_THREAD_DATA b1
+#define GLOBAL_LIGHT_DATA b1
+#define GLOBAL_THREAD_DATA b0
+#define COPY_DETAILS b1
+#define FRUSTUM_DATA b1
 #else
 #define SEMANTIC(sem) sem
 #define CBUFFER cbuffer
@@ -26,6 +29,8 @@
 #define Vec3 float3
 #define Vec2 float2
 #endif
+
+static const UINT TILE_SIZE = 16;
 
 #ifdef GLOBAL_MATRIX
 CBUFFER GlobalMatrix SEMANTIC(: register(GLOBAL_MATRIX))
@@ -77,6 +82,34 @@ CBUFFER MaterialData SEMANTIC(: register(MATERIAL_DATA))
 };
 #endif
 
+#ifdef COPY_DETAILS
+CBUFFER CopyDetails SEMANTIC(: register(COPY_DETAILS))
+{
+	UINT SourceSize			SEMANTIC(: packoffset(c0));
+	UINT DestinationSize	SEMANTIC(: packoffset(c0.y));
+	UINT MinSize			SEMANTIC(: packoffset(c0.z));
+	UINT CopyPadding		SEMANTIC(: packoffset(c0.w));
+};
+#endif
+
+#ifdef FRUSTUM_DATA
+CBUFFER FrustumData SEMANTIC(: register(CAMERA_DATA))
+{
+	Vec4 CameraRight		SEMANTIC(: packoffset(c0));
+	Vec4 CameraUp			SEMANTIC(: packoffset(c1));
+	Vec4 CameraForward		SEMANTIC(: packoffset(c2));
+	Vec4 CameraPos			SEMANTIC(: packoffset(c3));
+	float FOV				SEMANTIC(: packoffset(c4));
+	float FarDistance		SEMANTIC(: packoffset(c4.y));
+	float NearDistance		SEMANTIC(: packoffset(c4.z));
+	float Ratio				SEMANTIC(: packoffset(c4.w));
+	float ScreenWidth		SEMANTIC(: packoffset(c5));
+	float ScreenHeight		SEMANTIC(: packoffset(c5.y));
+	UINT NumTileRows		SEMANTIC(: packoffset(c5.z));
+	UINT NumTileCols		SEMANTIC(: packoffset(c5.w));
+};
+#endif
+
 struct Light
 {
 	Vec3 Position;
@@ -87,13 +120,19 @@ struct Light
 
 struct Plane
 {
+	Vec3 Point;
 	Vec3 Normal;
-	float Padding;
+	float Padding[2];
 };
 
 struct Frustum
 {
-	Plane Planes[4];
+	Plane Top;
+	Plane Bottom;
+	Plane Right;
+	Plane Left;
+	Plane Near;
+	Plane Far;
 };
 
 struct Sphere
