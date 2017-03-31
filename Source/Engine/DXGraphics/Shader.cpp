@@ -136,4 +136,30 @@ namespace DXG
 			break;
 		}
 	}
+
+	//Unbinds the shader from the pipeline
+	void Shader::Unbind(ID3D11DeviceContext* pContext)
+	{
+		switch (m_Type)
+		{
+		case ShaderType::Vertex:
+			pContext->VSSetShader(NULL, NULL, 0);
+			break;
+		case ShaderType::Hull:
+			pContext->HSSetShader(NULL, NULL, 0);
+			break;
+		case ShaderType::Domain:
+			pContext->DSSetShader(NULL, NULL, 0);
+			break;
+		case ShaderType::Geometry:
+			pContext->GSSetShader(NULL, NULL, 0);
+			break;
+		case ShaderType::Pixel:
+			pContext->PSSetShader(NULL, NULL, 0);
+			break;
+		case ShaderType::Compute:
+			pContext->CSSetShader(NULL, NULL, 0);
+			break;
+		}
+	}
 }

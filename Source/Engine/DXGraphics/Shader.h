@@ -27,6 +27,9 @@ namespace DXG
 		//Sets the shaders to the device context
 		void SetShader(ID3D11DeviceContext* pContext);
 
+		//Unbinds the shader from the pipeline
+		void Unbind(ID3D11DeviceContext* pContext);
+
 		//Returns the type of shaders
 		ShaderType GetType() { return m_Type; }
 
