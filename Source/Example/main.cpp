@@ -1,15 +1,22 @@
 #include "Engine.h"
 #include "Input.h"
 
-const int kLightRows = 4;
-const int kLightCols = 4;
+const int kLightRows = 20;
+const int kLightCols = 10;
+const int kNumOfLights = kLightRows * kLightCols;
 const int kNumOfColours = 4;
 const gen::CVector3 kLightColours[kNumOfColours] = { Scene::Light::kBlue, Scene::Light::kWhite, Scene::Light::kGreen, Scene::Light::kRed };
 
+struct LightEntity
+{
+	Scene::Light* light;
+	gen::CVector3 direction;
+} g_pLights[kNumOfLights] = { {nullptr, {0.0f, 0.0f, 0.0f}} };
+
 Scene::Model* g_pTeapotModel = nullptr;
+Scene::Model* g_pTeapotModelArray[1000] = { nullptr };
 Scene::Model* g_pFloorModel = nullptr;
 Scene::Camera* g_pCamera = nullptr;
-Scene::Light* g_pLights[kLightRows * kLightCols] = { nullptr };
 Render::Material* g_pMoonMaterial = nullptr;
 Render::Material* g_pWoodMaterial = nullptr;
 Render::Material* g_pOrangeMaterial = nullptr;
@@ -25,9 +32,15 @@ bool CreateScene()
 	g_pFloorModel = Engine::SceneManager()->CreateModel("..\\..\\Media\\Floor.x");
 	if (g_pFloorModel == nullptr) return false;
 
+	for (int i = 0; i < 1000; ++i)
+	{
+		g_pTeapotModelArray[i] = Engine::SceneManager()->CreateModel("..\\..\\Media\\Teapot.x");
+		g_pTeapotModelArray[i]->Matrix().SetPosition({ 75.0f - (25.0f * static_cast<float>(i % 32)), 0.0f, 75.0f - (25.0f * static_cast<float>(i / 32)) });
+	}
+
 	//Materials
 	g_pMoonMaterial = Engine::MaterialManager()->CreateMaterial("Moon", "..\\..\\Media\\Moon.jpg", 1.0f);
-	g_pWoodMaterial = Engine::MaterialManager()->CreateMaterial("Wood", "..\\..\\Media\\wood2.jpg", 1.0f);
+	g_pWoodMaterial = Engine::MaterialManager()->CreateMaterial("Wood", "..\\..\\Media\\wood2.jpg", 0.5f);
 	g_pCyanMaterial = Engine::MaterialManager()->CreateMaterial("Cyan", gen::CVector4{ 0.0f, 0.8f, 0.8f, 1.0f }, 1.0f);
 	g_pOrangeMaterial = Engine::MaterialManager()->CreateMaterial("Orange", gen::CVector4{ 1.0f, 0.5f, 0.0f, 1.0f }, 1.0f);
 	g_pMatGreyMaterial = Engine::MaterialManager()->CreateMaterial("Mat Grey", gen::CVector4{ 0.7f, 0.7f, 0.7f, 1.0f }, 0.0f);
@@ -39,8 +52,10 @@ bool CreateScene()
 	{
 		for (int col = 0; col < kLightCols; ++col)
 		{
-			g_pLights[row * kLightCols + 0] = Engine::SceneManager()->CreateLight(kLightColours[col % kNumOfColours], 10.0f);
-			g_pLights[row * kLightCols + 0]->Matrix().SetPosition({ 75.0f - (50.0f * static_cast<float>(col)), 20.0f, 75.0f - (50.0f * static_cast<float>(row)) });
+			int index = row * kLightCols + col;
+			g_pLights[index] = { Engine::SceneManager()->CreateLight(kLightColours[col % kNumOfColours], 10.0f, 100.0f), gen::CVector3::kZero };
+			g_pLights[index].light->Matrix().SetPosition({ 75.0f - (50.0f * static_cast<float>(col)), 20.0f, 75.0f - (50.0f * static_cast<float>(row)) });
+			g_pLights[index].direction = gen::CVector3(gen::Sin(static_cast<float>(index)), 0.0f, gen::Cos(static_cast<float>(index)));
 		}
 	}
 
@@ -50,7 +65,7 @@ bool CreateScene()
 
 	Engine::SceneManager()->SetActiveCamera(g_pCamera);
 
-	g_pTeapotModel->Matrix().SetPosition({0.0f, 0.0f, 0.0f});
+	g_pTeapotModel->Matrix().SetPosition({ 0.0f, 0.0f, 0.0f });
 	g_pFloorModel->Matrix().SetPosition({ 0.0f, 0.0f, 0.0f });
 	g_pCamera->Matrix().SetPosition({ 0.0f, 10.0f, -50.0f });
 	
@@ -167,6 +182,14 @@ void Controls(float delta)
 	}
 }
 
+void Update(float delta)
+{
+	for (int i = 0; i < kNumOfLights; ++i)
+	{
+		g_pLights[i].direction = (gen::MatrixRotationY(gen::kfPi * 0.5f * delta) * gen::CVector4(g_pLights[i].direction, 0.0f)).Vector3();
+		g_pLights[i].light->Matrix().Move(delta * 100.0f * g_pLights[i].direction);
+	}
+}
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int nCmdShow)
 {
@@ -186,6 +209,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
 		{
 			//Update stuff here
 			Controls(delta);
+			Update(delta);
 
 			//At the end of the scene update
 			Engine::Render();
