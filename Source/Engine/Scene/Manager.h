@@ -30,8 +30,8 @@ namespace Scene
 		///////////////////////////
 		// Scene creation
 
-		//Creates a light with a colour and brightness with positional data from a matrix
-		Light* CreateLight(const gen::CVector3& colour = Light::kWhite, const float brightness = 1.0f, const gen::CMatrix4x4& mat = gen::CMatrix4x4::kIdentity);
+		//Creates a light with a colour, brightness, and range with positional data from a matrix
+		Light* CreateLight(const gen::CVector3& colour = Light::kWhite, const float brightness = 1.0f, const float range = 50.0f, const gen::CMatrix4x4& mat = gen::CMatrix4x4::kIdentity);
 
 		//Removes the light from the scene
 		void RemoveLight(Light* l);

@@ -10,7 +10,7 @@ namespace Scene
 		// Construct / destruction
 
 		//Creates a light with a colour and brightness with positional data from a matrix (default world origin)
-		Light(const gen::CVector3& colour = Light::kWhite, const float brightness = 1.0f, const gen::CMatrix4x4& mat = gen::CMatrix4x4::kIdentity);
+		Light(const gen::CVector3& colour = Light::kWhite, const float brightness = 1.0f, const float range = 50.0f, const gen::CMatrix4x4& mat = gen::CMatrix4x4::kIdentity);
 
 		//Destructor
 		~Light() {}
@@ -43,6 +43,17 @@ namespace Scene
 			m_Brightness = brightness;
 		}
 
+		//Return the maximum range the light is applied
+		float GetRange()
+		{
+			return m_Range;
+		}
+
+		//Sets the maximum range the light is applied
+		void SetRange(float range)
+		{
+			m_Range = range;
+		}
 
 		///////////////////////////
 		// static constants
@@ -62,5 +73,6 @@ namespace Scene
 
 		gen::CVector3 m_Colour;
 		float m_Brightness;
+		float m_Range;
 	};
 }

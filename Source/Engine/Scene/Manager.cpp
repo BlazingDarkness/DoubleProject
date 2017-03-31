@@ -48,9 +48,9 @@ namespace Scene
 	// Scene creation
 
 	//Creates a light with a colour and brightness with positional data from a matrix
-	Light* Manager::CreateLight(const gen::CVector3& colour, const float brightness, const gen::CMatrix4x4& mat)
+	Light* Manager::CreateLight(const gen::CVector3& colour, const float brightness, const float range, const gen::CMatrix4x4& mat)
 	{
-		Light* light = new Light(colour, brightness, mat);
+		Light* light = new Light(colour, brightness, range, mat);
 
 		m_LightList.push_back(light);
 
