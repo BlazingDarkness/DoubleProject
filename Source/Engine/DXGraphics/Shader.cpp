@@ -1,9 +1,79 @@
 #pragma once
 #include "DXGraphics\Shader.h"
 #include <fstream>
+#include <d3dcompiler.h>
 
 namespace DXG
 {
+	//Function obtained from https://takinginitiative.wordpress.com/2011/12/11/directx-1011-basic-shader-reflection-automatic-input-layout-creation/
+	HRESULT CreateInputLayoutDescFromVertexShaderSignature(ID3DBlob* pShaderBlob, ID3D11Device* pD3DDevice, ID3D11InputLayout** pInputLayout)
+	{
+		// Reflect shader info
+		ID3D11ShaderReflection* pVertexShaderReflection = NULL;
+		if (FAILED(D3DReflect(pShaderBlob->GetBufferPointer(), pShaderBlob->GetBufferSize(), IID_ID3D11ShaderReflection, (void**)&pVertexShaderReflection)))
+		{
+			return S_FALSE;
+		}
+
+		// Get shader info
+		D3D11_SHADER_DESC shaderDesc;
+		pVertexShaderReflection->GetDesc(&shaderDesc);
+
+		// Read input layout description from shader info
+		std::vector<D3D11_INPUT_ELEMENT_DESC> inputLayoutDesc;
+		for (uint i = 0; i< shaderDesc.InputParameters; i++)
+		{
+			D3D11_SIGNATURE_PARAMETER_DESC paramDesc;
+			pVertexShaderReflection->GetInputParameterDesc(i, &paramDesc);
+
+			// fill out input element desc
+			D3D11_INPUT_ELEMENT_DESC elementDesc;
+			elementDesc.SemanticName = paramDesc.SemanticName;
+			elementDesc.SemanticIndex = paramDesc.SemanticIndex;
+			elementDesc.InputSlot = 0;
+			elementDesc.AlignedByteOffset = D3D11_APPEND_ALIGNED_ELEMENT;
+			elementDesc.InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
+			elementDesc.InstanceDataStepRate = 0;
+
+			// determine DXGI format
+			if (paramDesc.Mask == 1)
+			{
+				if (paramDesc.ComponentType == D3D_REGISTER_COMPONENT_UINT32) elementDesc.Format = DXGI_FORMAT_R32_UINT;
+				else if (paramDesc.ComponentType == D3D_REGISTER_COMPONENT_SINT32) elementDesc.Format = DXGI_FORMAT_R32_SINT;
+				else if (paramDesc.ComponentType == D3D_REGISTER_COMPONENT_FLOAT32) elementDesc.Format = DXGI_FORMAT_R32_FLOAT;
+			}
+			else if (paramDesc.Mask <= 3)
+			{
+				if (paramDesc.ComponentType == D3D_REGISTER_COMPONENT_UINT32) elementDesc.Format = DXGI_FORMAT_R32G32_UINT;
+				else if (paramDesc.ComponentType == D3D_REGISTER_COMPONENT_SINT32) elementDesc.Format = DXGI_FORMAT_R32G32_SINT;
+				else if (paramDesc.ComponentType == D3D_REGISTER_COMPONENT_FLOAT32) elementDesc.Format = DXGI_FORMAT_R32G32_FLOAT;
+			}
+			else if (paramDesc.Mask <= 7)
+			{
+				if (paramDesc.ComponentType == D3D_REGISTER_COMPONENT_UINT32) elementDesc.Format = DXGI_FORMAT_R32G32B32_UINT;
+				else if (paramDesc.ComponentType == D3D_REGISTER_COMPONENT_SINT32) elementDesc.Format = DXGI_FORMAT_R32G32B32_SINT;
+				else if (paramDesc.ComponentType == D3D_REGISTER_COMPONENT_FLOAT32) elementDesc.Format = DXGI_FORMAT_R32G32B32_FLOAT;
+			}
+			else if (paramDesc.Mask <= 15)
+			{
+				if (paramDesc.ComponentType == D3D_REGISTER_COMPONENT_UINT32) elementDesc.Format = DXGI_FORMAT_R32G32B32A32_UINT;
+				else if (paramDesc.ComponentType == D3D_REGISTER_COMPONENT_SINT32) elementDesc.Format = DXGI_FORMAT_R32G32B32A32_SINT;
+				else if (paramDesc.ComponentType == D3D_REGISTER_COMPONENT_FLOAT32) elementDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+			}
+
+			//save element desc
+			inputLayoutDesc.push_back(elementDesc);
+		}
+
+		// Try to create Input Layout
+		HRESULT hr = pD3DDevice->CreateInputLayout(&inputLayoutDesc[0], inputLayoutDesc.size(), pShaderBlob->GetBufferPointer(), pShaderBlob->GetBufferSize(), pInputLayout);
+
+		//Free allocation shader reflection memory
+		pVertexShaderReflection->Release();
+		return hr;
+	}
+
+
 	///////////////////////////
 	// Construct / destruction
 
@@ -12,6 +82,7 @@ namespace DXG
 	{
 		m_pLayout = NULL;
 		m_pVertexShader = NULL;
+		m_pShaderBlob = NULL;
 	}
 
 	//Ensures cleanup of any DX stuff
@@ -39,6 +110,7 @@ namespace DXG
 			SAFE_RELEASE(m_pComputeShader);
 			break;
 		}
+		SAFE_RELEASE(m_pShaderBlob);
 	}
 
 	//Initialises the shader and returns whether it was successful
@@ -47,59 +119,48 @@ namespace DXG
 		HRESULT hr;
 		m_Type = type;
 
-		std::vector<char> byteCode;
-
 		//Open compiled vertex shader file
 		std::ifstream ShaderFile(shaderFile, std::ios::in | std::ios::binary | std::ios::ate);
 		if (!ShaderFile.is_open()) return false;
 
+
 		//Read in shader file
 		std::streamoff fileSize = ShaderFile.tellg();
+		D3DCreateBlob(static_cast<SIZE_T>(fileSize), &m_pShaderBlob);
 		ShaderFile.seekg(0, std::ios::beg);
-		byteCode.resize(static_cast<decltype(byteCode.size())>(fileSize));
-		ShaderFile.read(&byteCode[0], fileSize);
+		ShaderFile.read(static_cast<char*>(m_pShaderBlob->GetBufferPointer()), fileSize);
 		if (ShaderFile.fail()) return false;
 
 		switch (type)
 		{
 		case ShaderType::Vertex:
-		{
-			hr = pDevice->CreateVertexShader(byteCode.data(), static_cast<SIZE_T>(byteCode.size()), nullptr, &m_pVertexShader);
+			hr = pDevice->CreateVertexShader(m_pShaderBlob->GetBufferPointer(), m_pShaderBlob->GetBufferSize(), nullptr, &m_pVertexShader);
 			if (FAILED(hr)) return false;
-
-			D3D11_INPUT_ELEMENT_DESC inputLayout[] =
-			{
-				// Semantic     Index  Format                        Slot  Offset  Slot Class                    Instance Step
-				{ "POSITION",   0,     DXGI_FORMAT_R32G32B32_FLOAT,  0,    0,      D3D11_INPUT_PER_VERTEX_DATA,  0 },
-				{ "NORMAL",     0,     DXGI_FORMAT_R32G32B32_FLOAT,  0,    12,     D3D11_INPUT_PER_VERTEX_DATA,  0 },
-				{ "TEXCOORD",   0,     DXGI_FORMAT_R32G32_FLOAT,     0,    24,     D3D11_INPUT_PER_VERTEX_DATA,  0 }
-			};
-			hr = pDevice->CreateInputLayout(inputLayout, 3, byteCode.data(), static_cast<SIZE_T>(byteCode.size()), &m_pLayout);
+			hr = CreateInputLayoutDescFromVertexShaderSignature(m_pShaderBlob, pDevice, &m_pLayout);
 			if (FAILED(hr)) return false;
-		}
 			break;
 		case ShaderType::Hull:
-			hr = pDevice->CreateHullShader(byteCode.data(), static_cast<SIZE_T>(byteCode.size()), nullptr, &m_pHullShader);
+			hr = pDevice->CreateHullShader(m_pShaderBlob->GetBufferPointer(), m_pShaderBlob->GetBufferSize(), nullptr, &m_pHullShader);
 			if (FAILED(hr)) return false;
 			break;
 
 		case ShaderType::Domain:
-			hr = pDevice->CreateDomainShader(byteCode.data(), static_cast<SIZE_T>(byteCode.size()), nullptr, &m_pDomainShader);
+			hr = pDevice->CreateDomainShader(m_pShaderBlob->GetBufferPointer(), m_pShaderBlob->GetBufferSize(), nullptr, &m_pDomainShader);
 			if (FAILED(hr)) return false;
 			break;
 
 		case ShaderType::Geometry:
-			hr = pDevice->CreateGeometryShader(byteCode.data(), static_cast<SIZE_T>(byteCode.size()), nullptr, &m_pGeometryShader);
+			hr = pDevice->CreateGeometryShader(m_pShaderBlob->GetBufferPointer(), m_pShaderBlob->GetBufferSize(), nullptr, &m_pGeometryShader);
 			if (FAILED(hr)) return false;
 			break;
 
 		case ShaderType::Pixel:
-			hr = pDevice->CreatePixelShader(byteCode.data(), static_cast<SIZE_T>(byteCode.size()), nullptr, &m_pPixelShader);
+			hr = pDevice->CreatePixelShader(m_pShaderBlob->GetBufferPointer(), m_pShaderBlob->GetBufferSize(), nullptr, &m_pPixelShader);
 			if (FAILED(hr)) return false;
 			break;
 
 		case ShaderType::Compute:
-			hr = pDevice->CreateComputeShader(byteCode.data(), static_cast<SIZE_T>(byteCode.size()), nullptr, &m_pComputeShader);
+			hr = pDevice->CreateComputeShader(m_pShaderBlob->GetBufferPointer(), m_pShaderBlob->GetBufferSize(), nullptr, &m_pComputeShader);
 			if (FAILED(hr)) return false;
 			break;
 		}

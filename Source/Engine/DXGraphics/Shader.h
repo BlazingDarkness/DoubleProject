@@ -44,6 +44,7 @@ namespace DXG
 			ID3D11ComputeShader* m_pComputeShader;
 		};
 		ID3D11InputLayout* m_pLayout;
+		ID3DBlob* m_pShaderBlob;
 		ShaderType m_Type;
 	};
 }
