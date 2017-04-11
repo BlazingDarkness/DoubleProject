@@ -1,9 +1,12 @@
 #include "Engine.h"
 #include "Input.h"
 
-const int kLightRows = 20;
-const int kLightCols = 10;
+const int kLightRows = 80;
+const int kLightCols = 80;
+const int kTeapotRows = 30;
+const int kTeapotCols = 30;
 const int kNumOfLights = kLightRows * kLightCols;
+const int kNumOfTeapots = kTeapotRows * kTeapotCols;
 const int kNumOfColours = 4;
 const gen::CVector3 kLightColours[kNumOfColours] = { Scene::Light::kBlue, Scene::Light::kWhite, Scene::Light::kGreen, Scene::Light::kRed };
 
@@ -14,7 +17,7 @@ struct LightEntity
 } g_pLights[kNumOfLights] = { {nullptr, {0.0f, 0.0f, 0.0f}} };
 
 Scene::Model* g_pTeapotModel = nullptr;
-Scene::Model* g_pTeapotModelArray[1000] = { nullptr };
+Scene::Model* g_pTeapotModelArray[kNumOfTeapots] = { nullptr };
 Scene::Model* g_pFloorModel = nullptr;
 Scene::Camera* g_pCamera = nullptr;
 Render::Material* g_pMoonMaterial = nullptr;
@@ -32,10 +35,14 @@ bool CreateScene()
 	g_pFloorModel = Engine::SceneManager()->CreateModel("..\\..\\Media\\Floor.x");
 	if (g_pFloorModel == nullptr) return false;
 
-	for (int i = 0; i < 1000; ++i)
+	for (int row = 0; row < kTeapotRows; ++row)
 	{
-		g_pTeapotModelArray[i] = Engine::SceneManager()->CreateModel("..\\..\\Media\\Teapot.x");
-		g_pTeapotModelArray[i]->Matrix().SetPosition({ 75.0f - (25.0f * static_cast<float>(i % 32)), 0.0f, 75.0f - (25.0f * static_cast<float>(i / 32)) });
+		for (int col = 0; col < kTeapotCols; ++col)
+		{
+			int index = row * kTeapotCols + col;
+			g_pTeapotModelArray[index] = Engine::SceneManager()->CreateModel("..\\..\\Media\\Teapot.x");
+			g_pTeapotModelArray[index]->Matrix().SetPosition({ (25.0f * static_cast<float>(col - kTeapotCols / 2)), 0.0f, (25.0f * static_cast<float>(row - kTeapotRows / 2)) });
+		}
 	}
 
 	//Materials
@@ -53,14 +60,14 @@ bool CreateScene()
 		for (int col = 0; col < kLightCols; ++col)
 		{
 			int index = row * kLightCols + col;
-			g_pLights[index] = { Engine::SceneManager()->CreateLight(kLightColours[col % kNumOfColours], 10.0f, 100.0f), gen::CVector3::kZero };
-			g_pLights[index].light->Matrix().SetPosition({ 75.0f - (50.0f * static_cast<float>(col)), 20.0f, 75.0f - (50.0f * static_cast<float>(row)) });
+			g_pLights[index] = { Engine::SceneManager()->CreateLight(kLightColours[col % kNumOfColours], 10.0f, 50.0f), gen::CVector3::kZero };
+			g_pLights[index].light->Matrix().SetPosition({ (20.0f * static_cast<float>(col - kLightCols / 2)), 15.0f, (20.0f * static_cast<float>(row - kLightRows / 2)) });
 			g_pLights[index].direction = gen::CVector3(gen::Sin(static_cast<float>(index)), 0.0f, gen::Cos(static_cast<float>(index)));
 		}
 	}
 
 	//Camera
-	g_pCamera = Engine::SceneManager()->CreateCamera(90.0f, 1.0f);
+	g_pCamera = Engine::SceneManager()->CreateCamera(90.0f, 1.0f, 10000.0f);
 	if (g_pCamera == nullptr) return false;
 
 	Engine::SceneManager()->SetActiveCamera(g_pCamera);
