@@ -37,14 +37,16 @@ void main(CSInput input)
 	farTopRight    = mul(farTopRight / farTopRight.w,    CameraMatrix);
 	farTopLeft     = mul(farTopLeft / farTopLeft.w,     CameraMatrix);
 
+	float3 dir = normalize(((farBottomLeft + farBottomRight + farTopRight + farTopLeft) / 4.0f).xyz - CameraPos.xyz);
+
 	Frustum f;
 
 	f.Top.Point = CameraPos.xyz;
 	f.Bottom.Point = CameraPos.xyz;
 	f.Right.Point = CameraPos.xyz;
 	f.Left.Point = CameraPos.xyz;
-	f.Far.Point = CameraPos.xyz + CameraForward.xyz * FarDistance;
-	f.Near.Point = CameraPos.xyz + CameraForward.xyz * NearDistance;
+	f.Far.Point = CameraPos.xyz + dir * FarDistance;
+	f.Near.Point = CameraPos.xyz;// +CameraForward.xyz * NearDistance;
 	
 	f.Top.Normal = normalize(cross(((farTopLeft + farTopRight) / 2.0f - CameraPos).xyz, CameraRight.xyz));
 	f.Bottom.Normal = normalize(cross(CameraRight.xyz, ((farBottomLeft + farBottomRight) / 2.0f - CameraPos).xyz));

@@ -26,6 +26,7 @@ struct InputVS
 struct OutputVS
 {
 	float4 ProjPos	: SV_POSITION;
+	float4 ViewPos	: VIEW_POSITION;
 };
 
 void main(in InputVS i, out OutputVS o)
@@ -33,5 +34,6 @@ void main(in InputVS i, out OutputVS o)
 	float4 modelPos = float4(i.Pos, 1.0f);
 	float4 worldPos = mul(modelPos, WorldMatrix);
 	float4 viewPos = mul(worldPos, ViewMatrix);
+	o.ViewPos = viewPos;
 	o.ProjPos = mul(viewPos, ProjMatrix);
 }

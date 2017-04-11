@@ -145,7 +145,7 @@ namespace Render
 
 
 		// Depth texture
-		descDepth.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+		descDepth.Format = DXGI_FORMAT_R32_FLOAT;
 		descDepth.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D10_BIND_RENDER_TARGET;
 		hr = m_pDevice->CreateTexture2D(&descDepth, NULL, &m_pDepthTexture);
 		if (FAILED(hr)) return false;
@@ -156,7 +156,7 @@ namespace Render
 		// Create the depth shader resource view
 		D3D11_SHADER_RESOURCE_VIEW_DESC descDepthSRV;
 		ZeroMemory(&descDepthSRV, sizeof(descDepthSRV));
-		descDepthSRV.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+		descDepthSRV.Format = DXGI_FORMAT_R32_FLOAT;
 		descDepthSRV.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
 		descDepthSRV.Texture2D.MostDetailedMip = 0;
 		descDepthSRV.Texture2D.MipLevels = -1;
@@ -398,6 +398,7 @@ namespace Render
 		m_DepthPass.AddShader(m_pDepthPS);
 		m_DepthPass.AddResource(m_GlobalMatrixConstBuffer,			DXG::ShaderType::Vertex, 0, DXG::BufferType::Constant);
 		m_DepthPass.AddResource(m_ObjMatrixConstBuffer,				DXG::ShaderType::Vertex, 1, DXG::BufferType::Constant);
+		m_DepthPass.AddResource(m_FrustumConstBuffer,				DXG::ShaderType::Pixel,  0, DXG::BufferType::Constant);
 
 		//Heat map pass
 		m_HeatMapPass.AddShader(m_pHeatMapVS);
@@ -598,8 +599,10 @@ namespace Render
 		float ClearColor[4] = { 0.1f, 0.1f, 0.15f, 1.0f };
 		
 		m_pDeviceContext->ClearRenderTargetView(m_pRenderTargetView, ClearColor);
-
 		m_pDeviceContext->ClearDepthStencilView(m_pDepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
+
+		float ClearColorWhite[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
+		m_pDeviceContext->ClearRenderTargetView(m_pDepthRenderTargetView, ClearColorWhite);
 	}
 
 	//Creates and sets the perspective matrix from a camera

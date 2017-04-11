@@ -1,3 +1,5 @@
+#define FRUSTUM_DATA b0
+#include "CommonStructs.h"
 
 ///////////////////////////
 // Types
@@ -5,6 +7,7 @@
 struct InputPS
 {
 	float4 ProjPos	: SV_POSITION;
+	float4 ViewPos	: VIEW_POSITION;
 };
 
 struct OutputPS
@@ -19,5 +22,5 @@ struct OutputPS
 void main( in InputPS i, out OutputPS o )
 {
 	//Grey scale depth position
-	o.Colour = clamp(i.ProjPos.z / i.ProjPos.w, 0.0f, 1.0f);
+	o.Colour = length(i.ViewPos.xyz) / FarDistance;
 }

@@ -57,8 +57,8 @@ void main(CSInput i)
 	if (i.GroupIndex == 0)
 	{
 		float3 distance = GroupFrustum.Far.Point - GroupFrustum.Near.Point;
-		GroupFrustum.Far.Point = GroupFrustum.Near.Point + distance * (maxDepth);
-		GroupFrustum.Near.Point = GroupFrustum.Near.Point + distance * (minDepth);
+		GroupFrustum.Far.Point = GroupFrustum.Near.Point + distance * maxDepth;
+		GroupFrustum.Near.Point = GroupFrustum.Near.Point + distance * minDepth;
 	}
 
 	GroupMemoryBarrierWithGroupSync();
@@ -74,7 +74,6 @@ void main(CSInput i)
 			&& CheckPlane(GroupFrustum.Bottom, light)
 			&& CheckPlane(GroupFrustum.Far, light)
 			&& CheckPlane(GroupFrustum.Near, light))
-		//if((i.GroupID.x + i.GroupID.y) % 2 == 0)
 		{
 			uint tileLightListIndex;
 			InterlockedAdd(TileLightCount, 1, tileLightListIndex);

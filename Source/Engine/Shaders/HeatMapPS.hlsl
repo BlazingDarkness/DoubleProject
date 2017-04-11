@@ -1,6 +1,6 @@
 Texture2D<uint2> LightGrid : register(t0);
 
-static const float colourRange = 25.0f;
+static const float colourRange = 15.0f;
 
 struct InputPS
 {
