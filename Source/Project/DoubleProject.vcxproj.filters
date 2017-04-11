@@ -328,5 +328,8 @@
     <FxCompile Include="..\Engine\Shaders\HeatMapVS.hlsl">
       <Filter>Engine\Shaders</Filter>
     </FxCompile>
+    <FxCompile Include="..\Engine\Shaders\ForwardPS.hlsl">
+      <Filter>Engine\Shaders</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>

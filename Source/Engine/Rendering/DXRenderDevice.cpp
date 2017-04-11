@@ -30,6 +30,7 @@ namespace Render
 		if (m_pFrustumCalcCS != nullptr) delete m_pFrustumCalcCS;
 		if (m_pHeatMapVS != nullptr) delete m_pHeatMapVS;
 		if (m_pHeatMapPS != nullptr) delete m_pHeatMapPS;
+		if (m_pForwardPS != nullptr) delete m_pForwardPS;
 
 		// Before shutting down set to windowed mode or when you release the swap chain it will throw an exception.
 		if (m_pSwapChain)
@@ -307,6 +308,12 @@ namespace Render
 			return false;
 		}
 
+		m_pForwardPS = new DXG::Shader;
+		if (!m_pForwardPS->Init(m_pDevice, DXG::ShaderType::Pixel, ".\\ForwardPS.cso"))
+		{
+			return false;
+		}
+
 		m_ObjMatrixConstBuffer = new ConstBuffer<ObjectMatrix>;
 		m_GlobalMatrixConstBuffer = new ConstBuffer<GlobalMatrix>;
 		m_GlobalLightConstBuffer = new ConstBuffer<GlobalLightData>;
@@ -407,6 +414,15 @@ namespace Render
 		m_HeatMapPass.AddResource(m_ObjMatrixConstBuffer,			DXG::ShaderType::Vertex, 1, DXG::BufferType::Constant);
 		m_HeatMapPass.AddResource(m_pLightGrid,						DXG::ShaderType::Pixel,  0, DXG::BufferType::Structured);
 
+		//Forward rendering
+		m_ForwardPass.AddShader(m_pModelVS);
+		m_ForwardPass.AddShader(m_pForwardPS);
+		m_ForwardPass.AddResource(m_GlobalMatrixConstBuffer,		DXG::ShaderType::Vertex, 0, DXG::BufferType::Constant);
+		m_ForwardPass.AddResource(m_ObjMatrixConstBuffer,			DXG::ShaderType::Vertex, 1, DXG::BufferType::Constant);
+		m_ForwardPass.AddResource(m_GlobalLightConstBuffer,			DXG::ShaderType::Pixel,  0, DXG::BufferType::Constant);
+		m_ForwardPass.AddResource(m_MaterialConstBuffer,			DXG::ShaderType::Pixel,  1, DXG::BufferType::Constant);
+		m_ForwardPass.AddResource(m_pLightStructuredBuffer,			DXG::ShaderType::Pixel,  2, DXG::BufferType::Structured);
+
 		m_pMeshManager = new MeshManager(m_pDevice);
 		m_pSceneManager = new Scene::Manager(m_pMeshManager);
 		m_pTextureManager = new TextureManager(m_pDevice);
@@ -423,7 +439,6 @@ namespace Render
 	void DXRenderDevice::RenderScene()
 	{
 		ClearScreen();
-		ID3D11ShaderResourceView* clearResourceViews[] = { NULL, NULL };
 
 		///////////////////////////
 		// Pre Render Data Gather
@@ -469,6 +484,79 @@ namespace Render
 		frustumData.ScreenHeight = static_cast<float>(m_ScreenHeight);
 		frustumData.CameraMatrix = activeCamera->Matrix();
 
+		switch (m_RenderMethod)
+		{
+		case RenderMethod::Forward:
+			RenderForward();
+			break;
+		case RenderMethod::ForwardPlus:
+			RenderForwardPlus();
+			break;
+		}
+
+		if (KeyHit(Key_O)) m_RenderMethod = RenderMethod::Forward;
+		if (KeyHit(Key_P)) m_RenderMethod = RenderMethod::ForwardPlus;
+	}
+
+	//Forward rendering
+	void DXRenderDevice::RenderForward()
+	{
+		ID3D11ShaderResourceView* clearResourceViews[] = { NULL, NULL };
+
+		///////////////////////////
+		// Model Render pass
+
+		m_ForwardPass.Bind(m_pDeviceContext);
+
+		//Ensure initial texture is null
+		m_pDeviceContext->PSSetShaderResources(0, 2, clearResourceViews);
+
+		for (auto itr = m_pSceneManager->m_ModelMap.begin(); itr != m_pSceneManager->m_ModelMap.end(); ++itr)
+		{
+			(*itr).first->SetBuffers(m_pDeviceContext);
+			auto& modelList = (*itr).second;
+
+			Material* pMat = nullptr;
+
+			for (auto modelItr = modelList.begin(); modelItr != modelList.end(); ++modelItr)
+			{
+				m_ObjMatrixConstBuffer->Set({ (*modelItr)->WorldMatrix() });
+				m_ObjMatrixConstBuffer->CommitChanges(m_pDeviceContext);
+
+				if (pMat != (*modelItr)->GetMaterial())
+				{
+					pMat = (*modelItr)->GetMaterial();
+					MaterialData& matData = m_MaterialConstBuffer->GetMutable();
+					matData.DiffuseColour = pMat->GetDiffuseColour();
+					matData.Alpha = pMat->GetAlpha();
+					matData.Dirtyness = pMat->GetDirtyness();
+					matData.Shinyness = pMat->GetShinyness();
+					matData.HasAlpha = pMat->HasAlpha() ? 1 : 0;
+					matData.HasDirt = pMat->HasDirt() ? 1 : 0;
+					matData.HasDiffuseTex = pMat->HasDiffuseTex() ? 1 : 0;
+					matData.HasSpecTex = pMat->HasSpecularTex() ? 1 : 0;
+					m_MaterialConstBuffer->CommitChanges(m_pDeviceContext);
+
+					if (pMat->HasDiffuseTex())
+					{
+						m_pDeviceContext->PSSetShaderResources(0, 1, pMat->GetDiffuseTexPtr());
+					}
+				}
+
+				m_pDeviceContext->DrawIndexed((*itr).first->GetIndexCount(), 0, 0);
+			}
+		}
+		//Unbind any texture files as they are not bound as apart of the render pass but instead per material
+		m_pDeviceContext->PSSetShaderResources(0, 2, clearResourceViews);
+		m_ForwardPass.Unbind(m_pDeviceContext);
+
+		m_pSwapChain->Present(0, 0);
+	}
+
+	//Forward+ rendering
+	void DXRenderDevice::RenderForwardPlus()
+	{
+		ID3D11ShaderResourceView* clearResourceViews[] = { NULL, NULL };
 
 		///////////////////////////
 		// Depth pre pass

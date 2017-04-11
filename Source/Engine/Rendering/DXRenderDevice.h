@@ -64,9 +64,17 @@ namespace Render
 		//Creates and sets the perspective matrix from a camera
 		gen::CMatrix4x4 CalcPerspectiveMatrix(Scene::Camera* camera);
 
+		//Forward rendering
+		void RenderForward();
+
+		//Forward+ rendering
+		void RenderForwardPlus();
+
 
 		///////////////////////////
 		// Variables
+		enum RenderMethod {ForwardPlus, Forward};
+		RenderMethod m_RenderMethod = RenderMethod::ForwardPlus;
 
 		ID3D11Device*				m_pDevice = NULL;
 		ID3D11DeviceContext*		m_pDeviceContext = NULL;
@@ -128,6 +136,7 @@ namespace Render
 		DXG::Shader* m_pFrustumCalcCS = nullptr;
 		DXG::Shader* m_pHeatMapVS = nullptr;
 		DXG::Shader* m_pHeatMapPS = nullptr;
+		DXG::Shader* m_pForwardPS = nullptr;
 		
 		//Render Passes
 		DXG::RenderPass m_CopyPass;
@@ -136,5 +145,6 @@ namespace Render
 		DXG::RenderPass m_FrustumPass;
 		DXG::RenderPass m_DepthPass;
 		DXG::RenderPass m_HeatMapPass;
+		DXG::RenderPass m_ForwardPass;
 	};
 }
