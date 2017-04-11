@@ -37,6 +37,7 @@ CBUFFER GlobalMatrix SEMANTIC(: register(GLOBAL_MATRIX))
 {
 	ROW_MAJOR Mat4 ViewMatrix;
 	ROW_MAJOR Mat4 ProjMatrix;
+	ROW_MAJOR Mat4 InvProjMatrix;
 };
 #endif
 
@@ -107,6 +108,7 @@ CBUFFER FrustumData SEMANTIC(: register(CAMERA_DATA))
 	float ScreenHeight		SEMANTIC(: packoffset(c5.y));
 	UINT NumTileRows		SEMANTIC(: packoffset(c5.z));
 	UINT NumTileCols		SEMANTIC(: packoffset(c5.w));
+	ROW_MAJOR Mat4 CameraMatrix SEMANTIC(: packoffset(c6));
 };
 #endif
 
@@ -122,7 +124,6 @@ struct Plane
 {
 	Vec3 Point;
 	Vec3 Normal;
-	float Padding[2];
 };
 
 struct Frustum

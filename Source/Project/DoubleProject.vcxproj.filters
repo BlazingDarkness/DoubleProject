@@ -120,9 +120,6 @@
     <ClCompile Include="..\..\3rd Party\Common\CTimer.cpp">
       <Filter>3rd Party\Common</Filter>
     </ClCompile>
-    <ClCompile Include="..\Engine\Shaders\DepthShader.cpp">
-      <Filter>Engine\Shaders</Filter>
-    </ClCompile>
     <ClCompile Include="..\Example\main.cpp">
       <Filter>Example</Filter>
     </ClCompile>
@@ -269,9 +266,6 @@
     <ClInclude Include="..\..\3rd Party\Common\CTimer.h">
       <Filter>3rd Party\Common</Filter>
     </ClInclude>
-    <ClInclude Include="..\Engine\Shaders\DepthShader.h">
-      <Filter>Engine\Shaders</Filter>
-    </ClInclude>
     <ClInclude Include="..\Engine\Rendering\MaterialManager.h">
       <Filter>Engine\Rendering</Filter>
     </ClInclude>
@@ -326,6 +320,12 @@
       <Filter>Engine\Shaders</Filter>
     </FxCompile>
     <FxCompile Include="..\Engine\Shaders\CopyBufferCS.hlsl">
+      <Filter>Engine\Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Engine\Shaders\HeatMapPS.hlsl">
+      <Filter>Engine\Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\Engine\Shaders\HeatMapVS.hlsl">
       <Filter>Engine\Shaders</Filter>
     </FxCompile>
   </ItemGroup>

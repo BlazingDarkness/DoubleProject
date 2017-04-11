@@ -10,7 +10,7 @@ cbuffer GlobalMatrix : register(b0)
 
 cbuffer ObjectMatrix : register(b1)
 {
-	float4x4 WorldMatrix;
+	row_major float4x4 WorldMatrix;
 };
 
 ///////////////////////////
