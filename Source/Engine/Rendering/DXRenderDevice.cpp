@@ -1,5 +1,6 @@
 #include "Rendering\DXRenderDevice.h"
 #include <DirectXMath.h>
+#include "Input.h"
 
 namespace Render
 {
@@ -20,11 +21,15 @@ namespace Render
 		if (m_pMaterialManager != nullptr) delete m_pMaterialManager;
 		if (m_pTextureManager != nullptr) delete m_pTextureManager;
 
-		if (m_pDepthShader != nullptr) delete m_pDepthShader;
+		if (m_pDepthVS != nullptr) delete m_pDepthVS;
+		if (m_pDepthPS != nullptr) delete m_pDepthPS;
 		if (m_pModelVS != nullptr) delete m_pModelVS;
 		if (m_pModelPS != nullptr) delete m_pModelPS;
 		if (m_pLightCullCS != nullptr) delete m_pLightCullCS;
 		if (m_pCopyCS != nullptr) delete m_pCopyCS;
+		if (m_pFrustumCalcCS != nullptr) delete m_pFrustumCalcCS;
+		if (m_pHeatMapVS != nullptr) delete m_pHeatMapVS;
+		if (m_pHeatMapPS != nullptr) delete m_pHeatMapPS;
 
 		// Before shutting down set to windowed mode or when you release the swap chain it will throw an exception.
 		if (m_pSwapChain)
@@ -39,6 +44,7 @@ namespace Render
 		if (m_MaterialConstBuffer != nullptr) delete m_MaterialConstBuffer;
 		if (m_GlobalThreadConstBuffer != nullptr) delete m_GlobalThreadConstBuffer;
 		if (m_BufferCopyConstBuffer != nullptr) delete m_BufferCopyConstBuffer;
+		if (m_FrustumConstBuffer != nullptr) delete m_FrustumConstBuffer;
 
 		//Structured buffers
 		if (m_pLightStructuredBuffer != nullptr) delete m_pLightStructuredBuffer;
@@ -83,6 +89,8 @@ namespace Render
 		GetClientRect(hWnd, &rc);
 		m_ScreenWidth = rc.right - rc.left;
 		m_ScreenHeight = rc.bottom - rc.top;
+		m_TileRows = ((m_ScreenHeight + 15) / 16);
+		m_TileCols = ((m_ScreenWidth + 15) / 16);
 
 		D3D_FEATURE_LEVEL featureLevel = D3D_FEATURE_LEVEL_11_1;
 
@@ -221,8 +229,14 @@ namespace Render
 		m_pDevice->CreateSamplerState(&descSampler, &m_pSamplerState);
 		m_pDeviceContext->PSSetSamplers(0, 1, &m_pSamplerState);
 
-		m_pDepthShader = new DepthShader;
-		if (!m_pDepthShader->Init(m_pDevice, ".\\DepthVS.cso", ".\\DepthPS.cso"))
+		m_pDepthVS = new DXG::Shader;
+		if (!m_pDepthVS->Init(m_pDevice, DXG::ShaderType::Vertex, ".\\DepthVS.cso"))
+		{
+			return false;
+		}
+
+		m_pDepthPS = new DXG::Shader;
+		if (!m_pDepthPS->Init(m_pDevice, DXG::ShaderType::Pixel, ".\\DepthPS.cso"))
 		{
 			return false;
 		}
@@ -251,14 +265,33 @@ namespace Render
 			return false;
 		}
 
+		m_pFrustumCalcCS = new DXG::Shader;
+		if (!m_pFrustumCalcCS->Init(m_pDevice, DXG::ShaderType::Compute, ".\\FrustumCalc.cso"))
+		{
+			return false;
+		}
+		m_pHeatMapVS = new DXG::Shader;
+		if (!m_pHeatMapVS->Init(m_pDevice, DXG::ShaderType::Vertex, ".\\HeatMapVS.cso"))
+		{
+			return false;
+		}
+
+		m_pHeatMapPS = new DXG::Shader;
+		if (!m_pHeatMapPS->Init(m_pDevice, DXG::ShaderType::Pixel, ".\\HeatMapPS.cso"))
+		{
+			return false;
+		}
+
 		m_ObjMatrixConstBuffer = new ConstBuffer<ObjectMatrix>;
 		m_GlobalMatrixConstBuffer = new ConstBuffer<GlobalMatrix>;
 		m_GlobalLightConstBuffer = new ConstBuffer<GlobalLightData>;
 		m_MaterialConstBuffer = new ConstBuffer<MaterialData>;
 		m_GlobalThreadConstBuffer = new ConstBuffer<GlobalThreadData>;
 		m_BufferCopyConstBuffer = new ConstBuffer<CopyDetails>;
+		m_FrustumConstBuffer = new ConstBuffer<FrustumData>;
 
 		m_pLightStructuredBuffer = new DXG::StructuredBuffer<Light>;
+		m_pFrustumStructuredBuffer = new DXG::StructuredBuffer<Frustum>;
 		m_pLightIndexStructuredBuffer = new DXG::StructuredBuffer<DXG::uint>;
 		m_pLightOffsetStructuredBuffer = new DXG::StructuredBuffer<DXG::uint>;
 		m_pZeroedStructuredBuffer = new DXG::StructuredBuffer<DXG::uint>;
@@ -270,8 +303,13 @@ namespace Render
 			!m_MaterialConstBuffer->Init(m_pDevice) ||
 			!m_GlobalThreadConstBuffer->Init(m_pDevice) ||
 			!m_BufferCopyConstBuffer->Init(m_pDevice) ||
-			!m_pLightStructuredBuffer->Init(m_pDevice, Scene::kMaxLights, DXG::CPUAccess::Write) ||
-			!m_pLightIndexStructuredBuffer->Init(m_pDevice, ((m_ScreenHeight + 15) / 16) * ((m_ScreenWidth + 15) / 16) * 256, DXG::CPUAccess::None, true) ||
+			!m_FrustumConstBuffer->Init(m_pDevice))
+		{
+			return false;
+		}
+		else if (!m_pLightStructuredBuffer->Init(m_pDevice, Scene::kMaxLights, DXG::CPUAccess::Write) ||
+			!m_pLightIndexStructuredBuffer->Init(m_pDevice, m_TileRows * m_TileCols * 256, DXG::CPUAccess::None, true) ||
+			!m_pFrustumStructuredBuffer->Init(m_pDevice, m_TileRows * m_TileCols, DXG::CPUAccess::None, true) ||
 			!m_pLightOffsetStructuredBuffer->Init(m_pDevice, 16, DXG::CPUAccess::None, true) ||
 			!m_pZeroedStructuredBuffer->Init(m_pDevice, 16, DXG::CPUAccess::Write, false) ||
 			!m_pLightGrid->Init(m_pDevice, (m_ScreenWidth + 15) / 16, (m_ScreenHeight + 15) / 16))
@@ -318,9 +356,30 @@ namespace Render
 		m_LightCullPass.AddResource(m_GlobalThreadConstBuffer,		DXG::ShaderType::Compute, 0, DXG::BufferType::Constant);
 		m_LightCullPass.AddResource(m_GlobalLightConstBuffer,		DXG::ShaderType::Compute, 1, DXG::BufferType::Constant);
 		m_LightCullPass.AddResource(m_pLightStructuredBuffer,		DXG::ShaderType::Compute, 0, DXG::BufferType::Structured);
+		m_LightCullPass.AddResource(m_pFrustumStructuredBuffer,		DXG::ShaderType::Compute, 1, DXG::BufferType::Structured);
 		m_LightCullPass.AddResource(m_pLightIndexStructuredBuffer,	DXG::ShaderType::Compute, 0, DXG::BufferType::UAV);
 		m_LightCullPass.AddResource(m_pLightGrid,					DXG::ShaderType::Compute, 1, DXG::BufferType::UAV);
 		m_LightCullPass.AddResource(m_pLightOffsetStructuredBuffer, DXG::ShaderType::Compute, 2, DXG::BufferType::UAV);
+
+		//Frustum calc pass
+		m_FrustumPass.AddShader(m_pFrustumCalcCS);
+		m_FrustumPass.AddResource(m_GlobalThreadConstBuffer,		DXG::ShaderType::Compute, 0, DXG::BufferType::Constant);
+		m_FrustumPass.AddResource(m_FrustumConstBuffer,				DXG::ShaderType::Compute, 1, DXG::BufferType::Constant);
+		m_FrustumPass.AddResource(m_GlobalMatrixConstBuffer,		DXG::ShaderType::Compute, 2, DXG::BufferType::Constant);
+		m_FrustumPass.AddResource(m_pFrustumStructuredBuffer,		DXG::ShaderType::Compute, 0, DXG::BufferType::UAV);
+
+		//Depth pre pass
+		m_DepthPass.AddShader(m_pDepthVS);
+		m_DepthPass.AddShader(m_pDepthPS);
+		m_DepthPass.AddResource(m_GlobalMatrixConstBuffer,			DXG::ShaderType::Vertex, 0, DXG::BufferType::Constant);
+		m_DepthPass.AddResource(m_ObjMatrixConstBuffer,				DXG::ShaderType::Vertex, 1, DXG::BufferType::Constant);
+
+		//Heat map pass
+		m_HeatMapPass.AddShader(m_pHeatMapVS);
+		m_HeatMapPass.AddShader(m_pHeatMapPS);
+		m_HeatMapPass.AddResource(m_GlobalMatrixConstBuffer,		DXG::ShaderType::Vertex, 0, DXG::BufferType::Constant);
+		m_HeatMapPass.AddResource(m_ObjMatrixConstBuffer,			DXG::ShaderType::Vertex, 1, DXG::BufferType::Constant);
+		m_HeatMapPass.AddResource(m_pLightGrid,						DXG::ShaderType::Pixel,  0, DXG::BufferType::Structured);
 
 		m_pMeshManager = new MeshManager(m_pDevice);
 		m_pSceneManager = new Scene::Manager(m_pMeshManager);
@@ -342,9 +401,12 @@ namespace Render
 		///////////////////////////
 		// Pre Render Data Gather
 
+		Scene::Camera* activeCamera = m_pSceneManager->GetActiveCamera();
+
 		GlobalMatrix& globalMatrix = m_GlobalMatrixConstBuffer->GetMutable();
-		globalMatrix.ViewMatrix = m_pSceneManager->GetActiveCamera()->GetViewMatrix();
-		globalMatrix.ProjMatrix = CalcPerspectiveMatrix(m_pSceneManager->GetActiveCamera());
+		globalMatrix.ViewMatrix = activeCamera->GetViewMatrix();
+		globalMatrix.ProjMatrix = CalcPerspectiveMatrix(activeCamera);
+		globalMatrix.InvProjMatrix = gen::Inverse(globalMatrix.ProjMatrix);
 		m_GlobalMatrixConstBuffer->Bind(m_pDeviceContext, DXG::ShaderType::Vertex, 0, DXG::BufferType::Constant);
 
 		int numOfLights = 0;
@@ -365,12 +427,26 @@ namespace Render
 		globalLightData.ScreenWidth = static_cast<float>(m_ScreenWidth);
 		globalLightData.ScreenHeight = static_cast<float>(m_ScreenHeight);
 
+		FrustumData& frustumData = m_FrustumConstBuffer->GetMutable();
+		frustumData.CameraRight = activeCamera->Matrix().GetRow(0);
+		frustumData.CameraUp = activeCamera->Matrix().GetRow(1);
+		frustumData.CameraForward = activeCamera->Matrix().GetRow(2);
+		frustumData.CameraPos = activeCamera->Matrix().GetRow(3);
+		frustumData.FarDistance = activeCamera->GetFarClip();
+		frustumData.NearDistance = activeCamera->GetNearClip();
+		frustumData.FOV = activeCamera->GetFOV();
+		frustumData.NumTileCols = m_TileCols;
+		frustumData.NumTileRows = m_TileRows;
+		frustumData.Ratio = static_cast<float>(m_ScreenWidth) / static_cast<float>(m_ScreenHeight);
+		frustumData.ScreenWidth = static_cast<float>(m_ScreenWidth);
+		frustumData.ScreenHeight = static_cast<float>(m_ScreenHeight);
+		frustumData.CameraMatrix = activeCamera->Matrix();
 
 
 		///////////////////////////
 		// Depth pre pass
 
-		/*m_pDepthShader->SetTechnique(m_pDeviceContext);
+		/*m_DepthPass.Bind(m_pDeviceContext);
 
 		for (auto itr = m_pSceneManager->m_ModelMap.begin(); itr != m_pSceneManager->m_ModelMap.end(); ++itr)
 		{
@@ -379,11 +455,14 @@ namespace Render
 
 			for (auto modelItr = modelList.begin(); modelItr != modelList.end(); ++modelItr)
 			{
-				g_ObjMatrix.world = (*modelItr)->Matrix();
-				SetConstantBuffer(m_pObjMatrixBuffer, 1, &g_ObjMatrix, sizeof(ObjectMatrixBuffer), DXG::ShaderType::Vertex);
+				m_ObjMatrixConstBuffer->Set({ (*modelItr)->WorldMatrix() });
+				m_ObjMatrixConstBuffer->CommitChanges(m_pDeviceContext);
+
 				m_pDeviceContext->DrawIndexed((*itr).first->GetIndexCount(), 0, 0);
 			}
-		}*/
+		}
+
+		m_DepthPass.Unbind(m_pDeviceContext);*/
 
 		///////////////////////////
 		// Copy reset
@@ -397,10 +476,21 @@ namespace Render
 		m_CopyPass.Unbind(m_pDeviceContext);
 
 		///////////////////////////
+		// Frustum calc
+
+		//set buffer data
+		m_GlobalThreadConstBuffer->Set({ { 16, 16, 1, 0 }, { (m_TileCols + 15) / 16, (m_TileRows + 15) /16, 1, 0 } });
+
+		//dispatch
+		m_FrustumPass.Bind(m_pDeviceContext);
+		m_pDeviceContext->Dispatch((m_TileCols + 15) / 16, (m_TileRows + 15) / 16, 1);
+		m_FrustumPass.Unbind(m_pDeviceContext);
+
+		///////////////////////////
 		// Lighting compute
 
 		//set buffer data
-		m_GlobalThreadConstBuffer->Set({ { 16, 16, 1, 0 }, { (m_ScreenWidth + 15) / 16 , (m_ScreenHeight + 15) / 16, 1, 0 } });
+		m_GlobalThreadConstBuffer->Set({ { 16, 16, 1, 0 }, { m_TileCols , m_TileRows, 1, 0 } });
 
 		//dispatch
 		m_LightCullPass.Bind(m_pDeviceContext);
@@ -412,38 +502,59 @@ namespace Render
 
 		m_FullRenderPass.Bind(m_pDeviceContext);
 
+		//Ensure initial texture is null
+		ID3D11ShaderResourceView* clearResourceViews[] = { NULL, NULL };
+		m_pDeviceContext->PSSetShaderResources(0, 2, clearResourceViews);
+
 		for (auto itr = m_pSceneManager->m_ModelMap.begin(); itr != m_pSceneManager->m_ModelMap.end(); ++itr)
 		{
 			(*itr).first->SetBuffers(m_pDeviceContext);
 			auto& modelList = (*itr).second;
+
+			Material* pMat = nullptr;
 
 			for (auto modelItr = modelList.begin(); modelItr != modelList.end(); ++modelItr)
 			{
 				m_ObjMatrixConstBuffer->Set({ (*modelItr)->WorldMatrix() });
 				m_ObjMatrixConstBuffer->CommitChanges(m_pDeviceContext);
 
-				Material* pMat = (*modelItr)->GetMaterial();
-				MaterialData& matData = m_MaterialConstBuffer->GetMutable();
-				matData.DiffuseColour = pMat->GetDiffuseColour();
-				matData.Alpha = pMat->GetAlpha();
-				matData.Dirtyness = pMat->GetDirtyness();
-				matData.Shinyness = pMat->GetShinyness();
-				matData.HasAlpha = pMat->HasAlpha() ? 1 : 0;
-				matData.HasDirt = pMat->HasDirt() ? 1 : 0;
-				matData.HasDiffuseTex = pMat->HasDiffuseTex() ? 1 : 0;
-				matData.HasSpecTex = pMat->HasSpecularTex() ? 1 : 0;
-				m_MaterialConstBuffer->CommitChanges(m_pDeviceContext);
-
-				if (pMat->HasDiffuseTex())
+				if (pMat != (*modelItr)->GetMaterial())
 				{
-					m_pDeviceContext->PSSetShaderResources(0, 1, pMat->GetDiffuseTexPtr());
+					pMat = (*modelItr)->GetMaterial();
+					MaterialData& matData = m_MaterialConstBuffer->GetMutable();
+					matData.DiffuseColour = pMat->GetDiffuseColour();
+					matData.Alpha = pMat->GetAlpha();
+					matData.Dirtyness = pMat->GetDirtyness();
+					matData.Shinyness = pMat->GetShinyness();
+					matData.HasAlpha = pMat->HasAlpha() ? 1 : 0;
+					matData.HasDirt = pMat->HasDirt() ? 1 : 0;
+					matData.HasDiffuseTex = pMat->HasDiffuseTex() ? 1 : 0;
+					matData.HasSpecTex = pMat->HasSpecularTex() ? 1 : 0;
+					m_MaterialConstBuffer->CommitChanges(m_pDeviceContext);
+
+					if (pMat->HasDiffuseTex())
+					{
+						m_pDeviceContext->PSSetShaderResources(0, 1, pMat->GetDiffuseTexPtr());
+					}
 				}
 
 				m_pDeviceContext->DrawIndexed((*itr).first->GetIndexCount(), 0, 0);
 			}
 		}
-
+		//Unbind any texture files as they are not bound as apart of the render pass but instead per material
+		m_pDeviceContext->PSSetShaderResources(0, 2, clearResourceViews);
 		m_FullRenderPass.Unbind(m_pDeviceContext);
+
+		///////////////////////////
+		// Heat Map pass
+		if (KeyHeld(EKeyCode::Key_H))
+		{
+			m_HeatMapPass.Bind(m_pDeviceContext);
+			m_pDeviceContext->IASetInputLayout(NULL);
+			m_pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+			m_pDeviceContext->Draw(4, 0);
+			m_HeatMapPass.Unbind(m_pDeviceContext);
+		}
 
 		m_pSwapChain->Present(0, 0);
 	}
@@ -473,11 +584,11 @@ namespace Render
 		//float xScale = 1.0f / gen::Tan(gen::ToRadians(camera->GetFOV()) * 0.25f);
 		//float yScale = xScale / ratio;
 
-
 		float hbyw = static_cast<float>(m_ScreenHeight) / static_cast<float>(m_ScreenWidth);
+		float wbyh = static_cast<float>(m_ScreenWidth) / static_cast<float>(m_ScreenHeight);
 
 		//DirectX::XMMATRIX mat = DirectX::XMMatrixPerspectiveFovLH( DirectX::XMConvertToRadians(45.0f), hbyw, 50.0f, 2000.0f);
-		DirectX::XMMATRIX mat = DirectX::XMMatrixPerspectiveFovLH(gen::ToRadians(camera->GetFOV()), hbyw * 1.5f, camera->GetNearClip(), camera->GetFarClip());
+		DirectX::XMMATRIX mat = DirectX::XMMatrixPerspectiveFovLH(gen::ToRadians(camera->GetFOV()), wbyh, camera->GetNearClip(), camera->GetFarClip());
 		DirectX::XMFLOAT4X4 mat4x4;
 		DirectX::XMStoreFloat4x4(&mat4x4, mat);
 		gen::CMatrix4x4 matrix;

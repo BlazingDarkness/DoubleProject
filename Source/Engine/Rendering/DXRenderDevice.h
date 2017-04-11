@@ -8,7 +8,6 @@
 #include "Rendering\MeshManager.h"
 #include "Rendering\TextureManager.h"
 #include "Rendering\MaterialManager.h"
-#include "Shaders\DepthShader.h"
 #include "Shaders\CommonStructs.h"
 #include "Scene\Manager.h"
 
@@ -89,6 +88,7 @@ namespace Render
 		ConstBuffer<MaterialData>* m_MaterialConstBuffer;
 		ConstBuffer<GlobalThreadData>* m_GlobalThreadConstBuffer;
 		ConstBuffer<CopyDetails>* m_BufferCopyConstBuffer;
+		ConstBuffer<FrustumData>* m_FrustumConstBuffer;
 
 		//Structured Buffers
 		template<typename T>
@@ -107,6 +107,8 @@ namespace Render
 
 		unsigned int m_ScreenWidth;
 		unsigned int m_ScreenHeight;
+		unsigned int m_TileRows;
+		unsigned int m_TileCols;
 
 		Scene::Manager* m_pSceneManager = nullptr;
 		MeshManager* m_pMeshManager = nullptr;
@@ -114,15 +116,22 @@ namespace Render
 		MaterialManager* m_pMaterialManager = nullptr;
 
 		//Shaders
-		DepthShader* m_pDepthShader = nullptr;
+		DXG::Shader* m_pDepthVS = nullptr;
+		DXG::Shader* m_pDepthPS = nullptr;
 		DXG::Shader* m_pModelVS = nullptr;
 		DXG::Shader* m_pModelPS = nullptr;
 		DXG::Shader* m_pLightCullCS = nullptr;
 		DXG::Shader* m_pCopyCS  = nullptr;
+		DXG::Shader* m_pFrustumCalcCS = nullptr;
+		DXG::Shader* m_pHeatMapVS = nullptr;
+		DXG::Shader* m_pHeatMapPS = nullptr;
 		
 		//Render Passes
 		DXG::RenderPass m_CopyPass;
 		DXG::RenderPass m_LightCullPass;
 		DXG::RenderPass m_FullRenderPass;
+		DXG::RenderPass m_FrustumPass;
+		DXG::RenderPass m_DepthPass;
+		DXG::RenderPass m_HeatMapPass;
 	};
 }
