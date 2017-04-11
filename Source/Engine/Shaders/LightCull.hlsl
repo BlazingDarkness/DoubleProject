@@ -18,13 +18,21 @@ groupshared uint TileLightList[MAX_LIGHTS_PER_TILE];
 groupshared Frustum GroupFrustum;
 groupshared uint LightIndexListOffset;
 
+bool CheckPlane(Plane p, Light l)
+{
+	float3 pos = l.Position - p.Normal * l.Range;
+	float3 dir = normalize(p.Point - pos);
+
+	return dot(p.Normal, dir) > 0.0f;
+}
+
 [numthreads(TILE_SIZE, TILE_SIZE, 1)]
 void main(CSInput i)
 {
 	if (i.GroupIndex == 0) // Only need one thread to initialise variables
 	{
 		TileLightCount = 0;
-		//GroupFrustum = FrustumBuffer[i.GroupID.x + (i.GroupID.y * NumOfThreadGroups.x)];
+		GroupFrustum = FrustumBuffer[i.GroupID.x + (i.GroupID.y * 80)];
 	}
 
 	GroupMemoryBarrierWithGroupSync();
@@ -34,12 +42,16 @@ void main(CSInput i)
 		//Make local copy of the light
 		Light light = LightBuffer[lightIndex];
 
-		//if() cull code
-		//{
+		if(CheckPlane(GroupFrustum.Left, light)
+			&& CheckPlane(GroupFrustum.Right, light)
+			&& CheckPlane(GroupFrustum.Top, light)
+			&& CheckPlane(GroupFrustum.Bottom, light))
+		//if((i.GroupID.x + i.GroupID.y) % 2 == 0)
+		{
 			uint tileLightListIndex;
 			InterlockedAdd(TileLightCount, 1, tileLightListIndex);
 			if(tileLightListIndex < MAX_LIGHTS_PER_TILE) TileLightList[tileLightListIndex] = lightIndex;
-		//}
+		}
 	}
 
 	GroupMemoryBarrierWithGroupSync();
