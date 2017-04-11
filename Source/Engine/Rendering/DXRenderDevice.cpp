@@ -61,6 +61,9 @@ namespace Render
 		SAFE_RELEASE(m_pDepthStencilView);
 		SAFE_RELEASE(m_pDepthStencilState);
 		SAFE_RELEASE(m_pDepthStencilBuffer);
+		SAFE_RELEASE(m_pDepthResourceView);
+		SAFE_RELEASE(m_pDepthTexture);
+		SAFE_RELEASE(m_pDepthRenderTargetView);
 		SAFE_RELEASE(m_pRenderTargetView);
 		SAFE_RELEASE(m_pDeviceContext);
 		SAFE_RELEASE(m_pDevice);
@@ -130,7 +133,7 @@ namespace Render
 		descDepth.Height = m_ScreenHeight;
 		descDepth.MipLevels = 1;
 		descDepth.ArraySize = 1;
-		descDepth.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+		descDepth.Format = DXGI_FORMAT_R24G8_TYPELESS;
 		descDepth.SampleDesc.Count = 1;
 		descDepth.SampleDesc.Quality = 0;
 		descDepth.Usage = D3D11_USAGE_DEFAULT;
@@ -140,6 +143,28 @@ namespace Render
 		hr = m_pDevice->CreateTexture2D(&descDepth, NULL, &m_pDepthStencilBuffer);
 		if (FAILED(hr)) return false;
 
+
+		// Depth texture
+		descDepth.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+		descDepth.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D10_BIND_RENDER_TARGET;
+		hr = m_pDevice->CreateTexture2D(&descDepth, NULL, &m_pDepthTexture);
+		if (FAILED(hr)) return false;
+
+		hr = m_pDevice->CreateRenderTargetView(m_pDepthTexture, NULL, &m_pDepthRenderTargetView);
+		if (FAILED(hr)) return false;
+
+		// Create the depth shader resource view
+		D3D11_SHADER_RESOURCE_VIEW_DESC descDepthSRV;
+		ZeroMemory(&descDepthSRV, sizeof(descDepthSRV));
+		descDepthSRV.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+		descDepthSRV.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+		descDepthSRV.Texture2D.MostDetailedMip = 0;
+		descDepthSRV.Texture2D.MipLevels = -1;
+
+		hr = m_pDevice->CreateShaderResourceView(m_pDepthTexture, &descDepthSRV, &m_pDepthResourceView);
+		if (FAILED(hr)) return false;
+
+
 		// Create the depth stencil state
 		D3D11_DEPTH_STENCIL_DESC descDSS;
 		ZeroMemory(&descDSS, sizeof(descDSS));
@@ -147,7 +172,7 @@ namespace Render
 		// Set up the description of the stencil state.
 		descDSS.DepthEnable = true;
 		descDSS.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
-		descDSS.DepthFunc = D3D11_COMPARISON_LESS;
+		descDSS.DepthFunc = D3D11_COMPARISON_LESS_EQUAL; // Need to be less or equal due to depth prepass
 
 		descDSS.StencilEnable = true;
 		descDSS.StencilReadMask = 0xFF;
@@ -397,6 +422,7 @@ namespace Render
 	void DXRenderDevice::RenderScene()
 	{
 		ClearScreen();
+		ID3D11ShaderResourceView* clearResourceViews[] = { NULL, NULL };
 
 		///////////////////////////
 		// Pre Render Data Gather
@@ -446,8 +472,9 @@ namespace Render
 		///////////////////////////
 		// Depth pre pass
 
-		/*m_DepthPass.Bind(m_pDeviceContext);
+		m_DepthPass.Bind(m_pDeviceContext);
 
+		m_pDeviceContext->OMSetRenderTargets(1, &m_pDepthRenderTargetView, m_pDepthStencilView);
 		for (auto itr = m_pSceneManager->m_ModelMap.begin(); itr != m_pSceneManager->m_ModelMap.end(); ++itr)
 		{
 			(*itr).first->SetBuffers(m_pDeviceContext);
@@ -461,8 +488,9 @@ namespace Render
 				m_pDeviceContext->DrawIndexed((*itr).first->GetIndexCount(), 0, 0);
 			}
 		}
+		m_pDeviceContext->OMSetRenderTargets(1, &m_pRenderTargetView, m_pDepthStencilView);
 
-		m_DepthPass.Unbind(m_pDeviceContext);*/
+		m_DepthPass.Unbind(m_pDeviceContext);
 
 		///////////////////////////
 		// Copy reset
@@ -494,7 +522,9 @@ namespace Render
 
 		//dispatch
 		m_LightCullPass.Bind(m_pDeviceContext);
+		m_pDeviceContext->CSSetShaderResources(2, 1, &m_pDepthResourceView);
 		m_pDeviceContext->Dispatch((m_ScreenWidth + 15) / 16, (m_ScreenHeight + 15) / 16,1);
+		m_pDeviceContext->CSSetShaderResources(2, 1, clearResourceViews);
 		m_LightCullPass.Unbind(m_pDeviceContext);
 
 		///////////////////////////
@@ -503,7 +533,6 @@ namespace Render
 		m_FullRenderPass.Bind(m_pDeviceContext);
 
 		//Ensure initial texture is null
-		ID3D11ShaderResourceView* clearResourceViews[] = { NULL, NULL };
 		m_pDeviceContext->PSSetShaderResources(0, 2, clearResourceViews);
 
 		for (auto itr = m_pSceneManager->m_ModelMap.begin(); itr != m_pSceneManager->m_ModelMap.end(); ++itr)

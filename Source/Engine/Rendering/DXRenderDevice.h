@@ -68,34 +68,37 @@ namespace Render
 		///////////////////////////
 		// Variables
 
-		ID3D11Device*			m_pDevice = NULL;
-		ID3D11DeviceContext*	m_pDeviceContext = NULL;
-		IDXGISwapChain*			m_pSwapChain = NULL;
-		ID3D11Texture2D*        m_pDepthStencilBuffer = NULL;
-		ID3D11DepthStencilState* m_pDepthStencilState = NULL;
-		ID3D11DepthStencilView* m_pDepthStencilView = NULL;
-		ID3D11RasterizerState*	m_pRasterState = NULL;
-		ID3D11RenderTargetView* m_pRenderTargetView = NULL;
-		ID3D11SamplerState*		m_pSamplerState = NULL;
+		ID3D11Device*				m_pDevice = NULL;
+		ID3D11DeviceContext*		m_pDeviceContext = NULL;
+		IDXGISwapChain*				m_pSwapChain = NULL;
+		ID3D11Texture2D*			m_pDepthStencilBuffer = NULL;
+		ID3D11DepthStencilState*	m_pDepthStencilState = NULL;
+		ID3D11DepthStencilView*		m_pDepthStencilView = NULL;
+		ID3D11Texture2D*			m_pDepthTexture = NULL;
+		ID3D11ShaderResourceView*	m_pDepthResourceView = NULL;
+		ID3D11RenderTargetView*		m_pDepthRenderTargetView = NULL;
+		ID3D11RasterizerState*		m_pRasterState = NULL;
+		ID3D11RenderTargetView*		m_pRenderTargetView = NULL;
+		ID3D11SamplerState*			m_pSamplerState = NULL;
 
 		//Constant Buffers
 		template<typename T>
 		using ConstBuffer = DXG::ConstantBuffer<T>;
 
-		ConstBuffer<GlobalMatrix>* m_GlobalMatrixConstBuffer;
-		ConstBuffer<ObjectMatrix>* m_ObjMatrixConstBuffer;
-		ConstBuffer<GlobalLightData>* m_GlobalLightConstBuffer;
-		ConstBuffer<MaterialData>* m_MaterialConstBuffer;
-		ConstBuffer<GlobalThreadData>* m_GlobalThreadConstBuffer;
-		ConstBuffer<CopyDetails>* m_BufferCopyConstBuffer;
-		ConstBuffer<FrustumData>* m_FrustumConstBuffer;
+		ConstBuffer<GlobalMatrix>*		m_GlobalMatrixConstBuffer;
+		ConstBuffer<ObjectMatrix>*		m_ObjMatrixConstBuffer;
+		ConstBuffer<GlobalLightData>*	m_GlobalLightConstBuffer;
+		ConstBuffer<MaterialData>*		m_MaterialConstBuffer;
+		ConstBuffer<GlobalThreadData>*	m_GlobalThreadConstBuffer;
+		ConstBuffer<CopyDetails>*		m_BufferCopyConstBuffer;
+		ConstBuffer<FrustumData>*		m_FrustumConstBuffer;
 
 		//Structured Buffers
 		template<typename T>
 		using StructuredBuffer = DXG::StructuredBuffer<T>;
 
-		StructuredBuffer<Light>* m_pLightStructuredBuffer;
-		StructuredBuffer<Frustum>* m_pFrustumStructuredBuffer;
+		StructuredBuffer<Light>*	 m_pLightStructuredBuffer;
+		StructuredBuffer<Frustum>*	 m_pFrustumStructuredBuffer;
 		StructuredBuffer<DXG::uint>* m_pLightIndexStructuredBuffer;
 		StructuredBuffer<DXG::uint>* m_pLightOffsetStructuredBuffer;
 		StructuredBuffer<DXG::uint>* m_pZeroedStructuredBuffer;

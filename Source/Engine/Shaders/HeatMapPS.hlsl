@@ -1,5 +1,7 @@
 Texture2D<uint2> LightGrid : register(t0);
 
+static const float colourRange = 25.0f;
+
 struct InputPS
 {
 	float4 ScreenPos	: SV_POSITION;
@@ -18,8 +20,6 @@ void main(in InputPS i, out OutputPS o)
 	float fLightCount = (float)(LightGrid[Tile].y);
 
 	float4 Colour = float4(0.0f, 0.0f, 0.0f, 1.0f);
-
-	float colourRange = 20.0f;
 
 	Colour.b = saturate(2.0f - fLightCount / colourRange);
 
