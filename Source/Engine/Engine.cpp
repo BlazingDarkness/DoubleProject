@@ -192,6 +192,14 @@ bool Engine::InitEngine(HINSTANCE hInstance, int nCmdShow)
 //Returns false if failed
 bool Engine::InitWindow(HINSTANCE hInstance, int nCmdShow)
 {
+#ifdef _DEBUG
+	const wchar_t title[] = L"ForwardPlusDemo";
+	const wchar_t description[] = L"Forward Plus Rendering Demo";
+#else
+	const char title[] = "ForwardPlusDemo";
+	const char description[] = "Forward Plus Rendering Demo";
+#endif
+
 	// Register class
 	WNDCLASSEX wcex;
 	wcex.cbSize = sizeof(WNDCLASSEX);
@@ -204,7 +212,7 @@ bool Engine::InitWindow(HINSTANCE hInstance, int nCmdShow)
 	wcex.hCursor = LoadCursor(NULL, IDC_ARROW);
 	wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
 	wcex.lpszMenuName = NULL;
-	wcex.lpszClassName = L"ForwardPlusDemo";
+	wcex.lpszClassName = title;
 	wcex.hIconSm = LoadIcon(wcex.hInstance, (LPCTSTR)IDI_TUTORIAL1);
 	if (!RegisterClassEx(&wcex))
 		return false;
@@ -213,7 +221,7 @@ bool Engine::InitWindow(HINSTANCE hInstance, int nCmdShow)
 	m_hInst = hInstance;
 	RECT rc = { 0, 0, 1280, 960 };
 	AdjustWindowRect(&rc, WS_OVERLAPPEDWINDOW, FALSE);
-	m_hWnd = CreateWindow(L"ForwardPlusDemo", L"Forward Plus Rendering Demo", WS_OVERLAPPEDWINDOW,
+	m_hWnd = CreateWindow(title, description, WS_OVERLAPPEDWINDOW,
 		CW_USEDEFAULT, CW_USEDEFAULT, rc.right - rc.left, rc.bottom - rc.top, NULL, NULL, hInstance,
 		NULL);
 	if (!m_hWnd)
