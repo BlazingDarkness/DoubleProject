@@ -2,18 +2,21 @@
 #include "Input.h"
 #include "AntTweakBar.h"
 
-int g_LightRows = 1;
-int g_LightCols = 1;
-int g_NumOfLights = 1;
 const int kMaxLightRows = 80;
 const int kMaxLightCols = 80;
-const int kTeapotRows = 30;
-const int kTeapotCols = 30;
 const int kMaxNumOfLights = kMaxLightRows * kMaxLightCols;
-const int kNumOfTeapots = kTeapotRows * kTeapotCols;
+
+const int kMaxTeapotRows = 30;
+const int kMaxTeapotCols = 30;
+const int kMaxNumOfTeapots = kMaxTeapotRows * kMaxTeapotCols;
+
 const int kNumOfCityBuildings = 20;
 const int kNumOfColours = 4;
 const gen::CVector3 kLightColours[kNumOfColours] = { Scene::Light::kBlue, Scene::Light::kWhite, Scene::Light::kGreen, Scene::Light::kRed };
+
+enum SceneMode {Teapot, City};
+
+SceneMode g_SceneMode = SceneMode::Teapot;
 
 struct LightEntity
 {
@@ -32,35 +35,196 @@ struct TeapotMaterials
 } g_TeapotMaterials;
 
 Render::Material* g_pFloorMaterial = nullptr;
+Render::Material* g_pCityMaterials[kNumOfCityBuildings] = {nullptr};
 
-Scene::Model* g_pTeapotModelArray[kNumOfTeapots] = { nullptr };
-Scene::Model* g_pCity[50] = { nullptr };
+Scene::Model* g_pTeapotModels[kMaxNumOfTeapots] = { nullptr };
+Scene::Model* g_pCityModels[kNumOfCityBuildings] = { nullptr };
 Scene::Model* g_pFloorModel = nullptr;
 Scene::Camera* g_pCamera = nullptr;
 
-bool CreateBaseScene()
+int g_LightRows = 0;
+int g_LightCols = 0;
+int g_NumOfLights = g_LightRows * g_LightCols;
+
+int g_TeapotRows = 30;
+int g_TeapotCols = 30;
+int g_NumOfTeapots = g_TeapotRows * g_TeapotCols;
+
+float g_LightSpeed = 100.0f;
+float g_LightRange = 50.0f;
+
+//Forward declarations
+bool CreateScene(SceneMode mode);
+void DestroyScene(SceneMode mode);
+
+void SafeRemoveModel(Scene::Model*& model)
 {
-	//Lights
-	for (int row = 0; row < g_LightRows; ++row)
+	if (model != nullptr)
 	{
-		for (int col = 0; col < g_LightCols; ++col)
-		{
-			int index = row * g_LightCols + col;
-			g_pLights[index] = { Engine::SceneManager()->CreateLight(kLightColours[col % kNumOfColours], 10.0f, 50.0f), gen::CVector3::kZero };
-			g_pLights[index].light->Matrix().SetPosition({ (20.0f * static_cast<float>(col - g_LightCols / 2)), 15.0f, (20.0f * static_cast<float>(row - g_LightCols / 2)) });
-			g_pLights[index].direction = gen::CVector3(gen::Sin(static_cast<float>(index)), 0.0f, gen::Cos(static_cast<float>(index)));
-		}
+		Engine::SceneManager()->RemoveModel(model);
+		model = nullptr;
 	}
+}
 
-	//Camera
-	g_pCamera = Engine::SceneManager()->CreateCamera(90.0f, 1.0f, 10000.0f);
-	if (g_pCamera == nullptr) return false;
+void SafeRemoveMaterial(Render::Material*& material)
+{
+	if (material != nullptr)
+	{
+		Engine::MaterialManager()->RemoveMaterial(material);
+		material = nullptr;
+	}
+}
 
-	Engine::SceneManager()->SetActiveCamera(g_pCamera);
+void TW_CALL SetSceneModeCB(const void *value, void * /*clientData*/)
+{
+	SceneMode mode = *static_cast<const SceneMode*>(value);
+	if (mode != g_SceneMode)
+	{
+		DestroyScene(g_SceneMode);
+		g_SceneMode = mode;
+		CreateScene(g_SceneMode);
+	}
+}
 
-	g_pCamera->Matrix().SetPosition({ 0.0f, 10.0f, -50.0f });
+void TW_CALL GetSceneModeCB(void *value, void * /*clientData*/)
+{
+	*static_cast<SceneMode*>(value) = g_SceneMode;
+}
+
+void TW_CALL SetLightRangeCB(const void *value, void * /*clientData*/)
+{
+	g_LightRange = *static_cast<const float*>(value);
+	for (int i = 0; i < g_NumOfLights; ++i)
+	{
+		g_pLights[i].light->SetRange(g_LightRange);
+	}
+}
+
+void TW_CALL GetLightRangeCB(void *value, void * /*clientData*/)
+{
+	*static_cast<float*>(value) = g_LightRange;
+}
+
+bool SetupTweakBar()
+{
+	TwBar* bar = TwGetBarByName("Settings");
+	if (bar == nullptr) return false;
+
+	TwEnumVal sceneMode[] = { { SceneMode::Teapot, "Teapot" }, { SceneMode::City, "Village" } };
+	TwType sceneModeType = TwDefineEnum("SceneModeEnum", sceneMode, 2);
+	TwAddVarCB(bar, "SceneMode", sceneModeType, SetSceneModeCB, GetSceneModeCB, NULL, "label='Mode' group='Scene'");
+	TwAddVarRW(bar, "Speed", TW_TYPE_FLOAT, &g_LightSpeed, "min=0 max=500 step=5 group='Lights'");
+	TwAddVarCB(bar, "Range", TW_TYPE_FLOAT, SetLightRangeCB, GetLightRangeCB, NULL, "min=10 max=150 step=1 group='Lights'");
+
 
 	return true;
+}
+
+bool CreateScene(SceneMode mode)
+{
+	//Camera
+	if (g_pCamera == nullptr) g_pCamera = Engine::SceneManager()->CreateCamera(90.0f, 1.0f, 10000.0f);
+	if (g_pCamera == nullptr) return false;
+	g_pCamera->Matrix().SetPosition({ 0.0f, 10.0f, -50.0f });
+	Engine::SceneManager()->SetActiveCamera(g_pCamera);
+
+	switch (mode)
+	{
+	case SceneMode::Teapot:
+	{
+		//Models
+		g_pFloorModel = Engine::SceneManager()->CreateModel("..\\..\\Media\\Floor.x");
+		if (g_pFloorModel == nullptr) return false;
+
+		for (int row = 0; row < g_TeapotRows; ++row)
+		{
+			for (int col = 0; col < g_TeapotCols; ++col)
+			{
+				int index = row * g_TeapotCols + col;
+				g_pTeapotModels[index] = Engine::SceneManager()->CreateModel("..\\..\\Media\\Teapot.x");
+				g_pTeapotModels[index]->Matrix().SetPosition({ (25.0f * static_cast<float>(col - g_TeapotCols / 2)), 0.0f, (25.0f * static_cast<float>(row - g_TeapotRows / 2)) });
+			}
+		}
+
+		//Materials
+		g_TeapotMaterials.moon = Engine::MaterialManager()->CreateMaterial("Moon", "..\\..\\Media\\Moon.jpg", 1.0f);
+		g_TeapotMaterials.wood = Engine::MaterialManager()->CreateMaterial("Wood", "..\\..\\Media\\wood2.jpg", 0.5f);
+		g_TeapotMaterials.cyan = Engine::MaterialManager()->CreateMaterial("Cyan", gen::CVector4{ 0.0f, 0.8f, 0.8f, 1.0f }, 1.0f);
+		g_TeapotMaterials.orange = Engine::MaterialManager()->CreateMaterial("Orange", gen::CVector4{ 1.0f, 0.5f, 0.0f, 1.0f }, 1.0f);
+		g_TeapotMaterials.grey = Engine::MaterialManager()->CreateMaterial("Mat Grey", gen::CVector4{ 0.7f, 0.7f, 0.7f, 1.0f }, 1.0f);
+		g_TeapotMaterials.matGrey = Engine::MaterialManager()->CreateMaterial("Mat Grey", gen::CVector4{ 0.7f, 0.7f, 0.7f, 1.0f }, 0.0f);
+
+		g_pFloorModel->SetMaterial(g_TeapotMaterials.wood);
+
+		g_pFloorModel->Matrix().SetPosition({ 0.0f, 0.0f, 0.0f });
+
+	}
+	break;
+	case SceneMode::City:
+	{
+		g_pFloorModel = Engine::SceneManager()->CreateModel("..\\..\\Media\\DesertScene\\Ground.x");
+		g_pFloorMaterial = Engine::MaterialManager()->CreateMaterial("FloorMat", gen::CVector4(0.5f, 0.5f, 0.5f, 0.0f), 0.5f);
+
+		if (g_pFloorModel == nullptr) return false;
+		if (g_pFloorMaterial == nullptr) return false;
+
+		g_pFloorModel->Matrix().Scale(8.0f);
+		g_pFloorModel->SetMaterial(g_pFloorMaterial);
+
+		for (int i = 0; i < kNumOfCityBuildings; ++i)
+		{
+			std::string buildNum = std::to_string(i + 1);
+			g_pCityModels[i] = Engine::SceneManager()->CreateModel("..\\..\\Media\\DesertScene\\Building" + buildNum + ".x");
+			g_pCityMaterials[i] = Engine::MaterialManager()->CreateMaterial("Building" + buildNum + "Tex", "..\\..\\Media\\DesertScene\\Building" + buildNum + "Tex.png", 0.5f);
+
+			if (g_pCityModels[i] == nullptr) return false;
+			if (g_pCityMaterials[i] == nullptr) return false;
+
+			g_pCityModels[i]->SetMaterial(Engine::MaterialManager()->CreateMaterial("Building" + buildNum + "Tex", "..\\..\\Media\\DesertScene\\Building" + buildNum + "Tex.png", 0.5f));
+			g_pCityModels[i]->Matrix().Scale(8.0f);
+		}
+	}
+	break;
+	}
+	return true;
+}
+
+void DestroyScene(SceneMode mode)
+{
+	switch (mode)
+	{
+	case SceneMode::Teapot:
+	{
+		SafeRemoveModel(g_pFloorModel);
+		SafeRemoveMaterial(g_pFloorMaterial);
+
+		for (int i = 0; i < g_NumOfTeapots; ++i)
+		{
+			SafeRemoveModel(g_pTeapotModels[i]);
+		}
+
+		SafeRemoveMaterial(g_TeapotMaterials.moon);
+		SafeRemoveMaterial(g_TeapotMaterials.wood);
+		SafeRemoveMaterial(g_TeapotMaterials.cyan);
+		SafeRemoveMaterial(g_TeapotMaterials.orange);
+		SafeRemoveMaterial(g_TeapotMaterials.grey);
+		SafeRemoveMaterial(g_TeapotMaterials.matGrey);
+	}
+	break;
+	case SceneMode::City:
+	{
+		SafeRemoveModel(g_pFloorModel);
+		SafeRemoveMaterial(g_pFloorMaterial);
+		
+		for (int i = 0; i < kNumOfCityBuildings; ++i)
+		{
+			SafeRemoveModel(g_pCityModels[i]);
+			SafeRemoveMaterial(g_pCityMaterials[i]);
+		}
+	}
+	break;
+	}
+
 }
 
 void ChangeLightCount(int row, int col)
@@ -115,83 +279,6 @@ void ChangeLightCount(int row, int col)
 		}
 	}
 }
-
-//Returns true if all items in scene were successfully created
-bool CreateTeapotScene()
-{
-	if (!CreateBaseScene()) return false;
-
-	//Models
-	g_pFloorModel = Engine::SceneManager()->CreateModel("..\\..\\Media\\Floor.x");
-	if (g_pFloorModel == nullptr) return false;
-
-	for (int row = 0; row < kTeapotRows; ++row)
-	{
-		for (int col = 0; col < kTeapotCols; ++col)
-		{
-			int index = row * kTeapotCols + col;
-			g_pTeapotModelArray[index] = Engine::SceneManager()->CreateModel("..\\..\\Media\\Teapot.x");
-			g_pTeapotModelArray[index]->Matrix().SetPosition({ (25.0f * static_cast<float>(col - kTeapotCols / 2)), 0.0f, (25.0f * static_cast<float>(row - kTeapotRows / 2)) });
-		}
-	}
-
-	//Materials
-	g_TeapotMaterials.moon = Engine::MaterialManager()->CreateMaterial("Moon", "..\\..\\Media\\Moon.jpg", 1.0f);
-	g_TeapotMaterials.wood = Engine::MaterialManager()->CreateMaterial("Wood", "..\\..\\Media\\wood2.jpg", 0.5f);
-	g_TeapotMaterials.cyan = Engine::MaterialManager()->CreateMaterial("Cyan", gen::CVector4{ 0.0f, 0.8f, 0.8f, 1.0f }, 1.0f);
-	g_TeapotMaterials.orange = Engine::MaterialManager()->CreateMaterial("Orange", gen::CVector4{ 1.0f, 0.5f, 0.0f, 1.0f }, 1.0f);
-	g_TeapotMaterials.grey = Engine::MaterialManager()->CreateMaterial("Mat Grey", gen::CVector4{ 0.7f, 0.7f, 0.7f, 1.0f }, 1.0f);
-	g_TeapotMaterials.matGrey = Engine::MaterialManager()->CreateMaterial("Mat Grey", gen::CVector4{ 0.7f, 0.7f, 0.7f, 1.0f }, 0.0f);
-
-	g_pFloorModel->SetMaterial(g_TeapotMaterials.wood);
-
-	g_pFloorModel->Matrix().SetPosition({ 0.0f, 0.0f, 0.0f });
-	
-	return true;
-}
-
-void DestroyTeapotScene()
-{
-	Engine::SceneManager()->RemoveModel(g_pFloorModel);
-	for (int i = 0; i < kNumOfTeapots; ++i)
-	{
-		Engine::SceneManager()->RemoveModel(g_pTeapotModelArray[i]);
-	}
-}
-
-bool CreateCityScene()
-{
-	if (!CreateBaseScene()) return false;
-
-	g_pFloorModel = Engine::SceneManager()->CreateModel("..\\..\\Media\\DesertScene\\Ground.x");
-	g_pFloorMaterial = Engine::MaterialManager()->CreateMaterial("FloorMat", gen::CVector4( 0.5f, 0.5f, 0.5f, 0.0f ), 0.5f);
-
-	if (g_pFloorModel == nullptr) return false;
-
-	g_pFloorModel->Matrix().Scale(8.0f);
-	g_pFloorModel->SetMaterial(g_pFloorMaterial);
-
-	for (int i = 0; i < kNumOfCityBuildings; ++i)
-	{
-		std::string buildNum = std::to_string(i + 1);
-		g_pCity[i] = Engine::SceneManager()->CreateModel("..\\..\\Media\\DesertScene\\Building" + buildNum + ".x");
-		g_pCity[i]->SetMaterial(Engine::MaterialManager()->CreateMaterial("Building" + buildNum + "Tex", "..\\..\\Media\\DesertScene\\Building" + buildNum + "Tex.png", 0.5f));
-		g_pCity[i]->Matrix().Scale(8.0f);
-	}
-
-	return true;
-}
-
-void DestroyCityScene()
-{
-	Engine::SceneManager()->RemoveModel(g_pFloorModel);
-	for (int i = 0; i < kNumOfCityBuildings; ++i)
-	{
-		Engine::SceneManager()->RemoveModel(g_pCity[i]);
-	}
-}
-
-
 
 void Controls(float delta)
 {
@@ -306,21 +393,12 @@ void Controls(float delta)
 	}
 }
 
-void UpdateTeapotScene(float delta)
+void UpdateScene(float delta)
 {
 	for (int i = 0; i < g_NumOfLights; ++i)
 	{
-		g_pLights[i].direction = (gen::MatrixRotationY(gen::kfPi * 0.5f * delta) * gen::CVector4(g_pLights[i].direction, 0.0f)).Vector3();
-		g_pLights[i].light->Matrix().Move(delta * 100.0f * g_pLights[i].direction);
-	}
-}
-
-void UpdateCityScene(float delta)
-{
-	for (int i = 0; i < g_NumOfLights; ++i)
-	{
-		g_pLights[i].direction = (gen::MatrixRotationY(gen::kfPi * 0.5f * delta) * gen::CVector4(g_pLights[i].direction, 0.0f)).Vector3();
-		g_pLights[i].light->Matrix().Move(delta * 100.0f * g_pLights[i].direction);
+		g_pLights[i].direction = (gen::MatrixRotationY(gen::kfPi * g_LightSpeed * 0.005f * delta) * gen::CVector4(g_pLights[i].direction, 0.0f)).Vector3();
+		g_pLights[i].light->Matrix().Move(delta * g_LightSpeed * g_pLights[i].direction);
 	}
 }
 
@@ -332,7 +410,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
 		return (int)(Engine::LastMessage().wParam);
 	}
 
-	if (Engine::IsRunning() && CreateCityScene())
+	if (Engine::IsRunning() && SetupTweakBar() && CreateScene(g_SceneMode))
 	{
 		float delta = 0.0f;
 		Engine::Render();
@@ -342,7 +420,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
 		{
 			//Update stuff here
 			Controls(delta);
-			UpdateCityScene(delta);
+			UpdateScene(delta);
 
 			//At the end of the scene update
 			Engine::Render();
