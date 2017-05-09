@@ -54,11 +54,12 @@ void main( in InputPS i, out OutputPS o)
 		LightDir /= LightDist;
 		float LightStrength = saturate(LightBrightness / LightDist);
 		float3 DiffuseColour = LightStrength * LightBuffer[light].Colour * saturate(dot(WorldNormal, LightDir));
-		TotalDiffuseColour += DiffuseColour * smoothstep(0.0f, LightBuffer[light].Range, LightBuffer[light].Range - LightDist);
+		float smoothedDist = smoothstep(0.0f, LightBuffer[light].Range, LightBuffer[light].Range - LightDist);
+		TotalDiffuseColour += DiffuseColour * smoothedDist;
 
 		// Calculate specular lighting from the 1st light. Standard equation: Specular = light colour * max(0, (N.H)^p)
 		float3 Halfway = normalize(CameraDir + LightDir);
-		TotalSpecularColour += DiffuseColour * saturate(pow(dot(WorldNormal, Halfway), SpecularPower)) * Shinyness;
+		TotalSpecularColour += DiffuseColour * smoothedDist * saturate(pow(dot(WorldNormal, Halfway), SpecularPower)) * Shinyness;
 	}
 
 	////////////////////////
