@@ -1,6 +1,7 @@
 #include "Engine.h"
 #include "Input.h"
 #include "Resource.h"
+#include "AntTweakBar.h"
 #include <windows.h>
 #include <windowsx.h>
 
@@ -237,6 +238,10 @@ bool Engine::InitWindow(HINSTANCE hInstance, int nCmdShow)
 //--------------------------------------------------------------------------------------
 LRESULT CALLBACK Engine::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
+	// Send event message to AntTweakBar
+	if (TwEventWin(hWnd, message, wParam, lParam))
+		return 0; // Event has been handled by AntTweakBar
+
 	PAINTSTRUCT ps;
 	RECT rect;
 	HDC hdc;
