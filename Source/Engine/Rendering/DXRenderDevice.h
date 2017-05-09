@@ -70,12 +70,24 @@ namespace Render
 		//Forward+ rendering
 		void RenderForwardPlus();
 
+		//Heatmap rendering
+		void RenderHeatmap();
+
+		//Resizes all components dependant on screen size
+		bool Resize();
+
 
 		///////////////////////////
 		// Variables
-		enum RenderMethod {ForwardPlus, Forward};
-		RenderMethod m_RenderMethod = RenderMethod::ForwardPlus;
+		enum RenderMode {ForwardPlus, Forward, Heatmap};
+		RenderMode m_RenderMode = RenderMode::ForwardPlus;
 
+		//Descs - only those needed for screen resizing
+		DXGI_SWAP_CHAIN_DESC m_SwapChainDesc;
+		D3D11_TEXTURE2D_DESC m_DepthStencilDesc;
+		D3D11_TEXTURE2D_DESC m_DepthTextureDesc;
+
+		//DX resources
 		ID3D11Device*				m_pDevice = NULL;
 		ID3D11DeviceContext*		m_pDeviceContext = NULL;
 		IDXGISwapChain*				m_pSwapChain = NULL;
@@ -116,6 +128,8 @@ namespace Render
 
 		Texture2D* m_pLightGrid;
 
+		unsigned int m_PrevScreenWidth;
+		unsigned int m_PrevScreenHeight;
 		unsigned int m_ScreenWidth;
 		unsigned int m_ScreenHeight;
 		unsigned int m_TileRows;
@@ -146,5 +160,8 @@ namespace Render
 		DXG::RenderPass m_DepthPass;
 		DXG::RenderPass m_HeatMapPass;
 		DXG::RenderPass m_ForwardPass;
+
+		//Tweakbar vars
+
 	};
 }

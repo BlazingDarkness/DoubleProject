@@ -1,6 +1,7 @@
 #include "Rendering\DXRenderDevice.h"
 #include <DirectXMath.h>
 #include "Input.h"
+#include "AntTweakBar.h"
 
 namespace Render
 {
@@ -16,6 +17,8 @@ namespace Render
 	//Releases all memory used
 	DXRenderDevice::~DXRenderDevice()
 	{
+		TwTerminate();
+
 		if (m_pSceneManager != nullptr) delete m_pSceneManager;
 		if (m_pMeshManager != nullptr) delete m_pMeshManager;
 		if (m_pMaterialManager != nullptr) delete m_pMaterialManager;
@@ -93,28 +96,29 @@ namespace Render
 		GetClientRect(hWnd, &rc);
 		m_ScreenWidth = rc.right - rc.left;
 		m_ScreenHeight = rc.bottom - rc.top;
+		m_PrevScreenWidth = m_ScreenWidth;
+		m_PrevScreenHeight = m_ScreenHeight;
 		m_TileRows = ((m_ScreenHeight + 15) / 16);
 		m_TileCols = ((m_ScreenWidth + 15) / 16);
 
 		D3D_FEATURE_LEVEL featureLevel = D3D_FEATURE_LEVEL_11_1;
 
 		// Create a Direct3D device (i.e. initialise D3D), and create a swap-chain (create a back buffer to render to)
-		DXGI_SWAP_CHAIN_DESC sd;         // Structure to contain all the information needed
-		ZeroMemory(&sd, sizeof(sd)); // Clear the structure to 0 - common Microsoft practice, not really good style
-		sd.BufferCount = 1;
-		sd.BufferDesc.Width = m_ScreenWidth;             // Target window size
-		sd.BufferDesc.Height = m_ScreenHeight;           // --"--
-		sd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM; // Pixel format of target window
-		sd.BufferDesc.RefreshRate.Numerator = 60;          // Refresh rate of monitor
-		sd.BufferDesc.RefreshRate.Denominator = 1;         // --"--
-		sd.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
-		sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-		sd.SampleDesc.Count = 1;
-		sd.SampleDesc.Quality = 0;
-		sd.OutputWindow = hWnd;                            // Target window
-		sd.Windowed = TRUE;                                // Whether to render in a window (TRUE) or go fullscreen (FALSE)
-		hr = D3D11CreateDeviceAndSwapChain(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, D3D11_CREATE_DEVICE_DEBUG, &featureLevel, 1,
-			D3D11_SDK_VERSION, &sd, &m_pSwapChain, &m_pDevice, NULL, &m_pDeviceContext);
+		ZeroMemory(&m_SwapChainDesc, sizeof(m_SwapChainDesc)); // Clear the structure to 0 - common Microsoft practice, not really good style
+		m_SwapChainDesc.BufferCount = 1;
+		m_SwapChainDesc.BufferDesc.Width = m_ScreenWidth;             // Target window size
+		m_SwapChainDesc.BufferDesc.Height = m_ScreenHeight;           // --"--
+		m_SwapChainDesc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM; // Pixel format of target window
+		m_SwapChainDesc.BufferDesc.RefreshRate.Numerator = 60;          // Refresh rate of monitor
+		m_SwapChainDesc.BufferDesc.RefreshRate.Denominator = 1;         // --"--
+		m_SwapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
+		m_SwapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+		m_SwapChainDesc.SampleDesc.Count = 1;
+		m_SwapChainDesc.SampleDesc.Quality = 0;
+		m_SwapChainDesc.OutputWindow = hWnd;                            // Target window
+		m_SwapChainDesc.Windowed = TRUE;                                // Whether to render in a window (TRUE) or go fullscreen (FALSE)
+		hr = D3D11CreateDeviceAndSwapChain(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, 0, &featureLevel, 1,
+			D3D11_SDK_VERSION, &m_SwapChainDesc, &m_pSwapChain, &m_pDevice, NULL, &m_pDeviceContext);
 		if (FAILED(hr)) return false;
 
 
@@ -128,27 +132,36 @@ namespace Render
 
 
 		// Create a texture (bitmap) to use for a depth buffer
-		D3D11_TEXTURE2D_DESC descDepth;
-		ZeroMemory(&descDepth, sizeof(descDepth));
-		descDepth.Width = m_ScreenWidth;
-		descDepth.Height = m_ScreenHeight;
-		descDepth.MipLevels = 1;
-		descDepth.ArraySize = 1;
-		descDepth.Format = DXGI_FORMAT_R24G8_TYPELESS;
-		descDepth.SampleDesc.Count = 1;
-		descDepth.SampleDesc.Quality = 0;
-		descDepth.Usage = D3D11_USAGE_DEFAULT;
-		descDepth.BindFlags = D3D11_BIND_DEPTH_STENCIL;
-		descDepth.CPUAccessFlags = 0;
-		descDepth.MiscFlags = 0;
-		hr = m_pDevice->CreateTexture2D(&descDepth, NULL, &m_pDepthStencilBuffer);
+		ZeroMemory(&m_DepthStencilDesc, sizeof(m_DepthStencilDesc));
+		m_DepthStencilDesc.Width = m_ScreenWidth;
+		m_DepthStencilDesc.Height = m_ScreenHeight;
+		m_DepthStencilDesc.MipLevels = 1;
+		m_DepthStencilDesc.ArraySize = 1;
+		m_DepthStencilDesc.Format = DXGI_FORMAT_R24G8_TYPELESS;
+		m_DepthStencilDesc.SampleDesc.Count = 1;
+		m_DepthStencilDesc.SampleDesc.Quality = 0;
+		m_DepthStencilDesc.Usage = D3D11_USAGE_DEFAULT;
+		m_DepthStencilDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+		m_DepthStencilDesc.CPUAccessFlags = 0;
+		m_DepthStencilDesc.MiscFlags = 0;
+		hr = m_pDevice->CreateTexture2D(&m_DepthStencilDesc, NULL, &m_pDepthStencilBuffer);
 		if (FAILED(hr)) return false;
 
 
-		// Depth texture
-		descDepth.Format = DXGI_FORMAT_R32_FLOAT;
-		descDepth.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D10_BIND_RENDER_TARGET;
-		hr = m_pDevice->CreateTexture2D(&descDepth, NULL, &m_pDepthTexture);
+		// Create a texture (bitmap) to use for a depth buffer
+		ZeroMemory(&m_DepthTextureDesc, sizeof(m_DepthTextureDesc));
+		m_DepthTextureDesc.Width = m_ScreenWidth;
+		m_DepthTextureDesc.Height = m_ScreenHeight;
+		m_DepthTextureDesc.MipLevels = 1;
+		m_DepthTextureDesc.ArraySize = 1;
+		m_DepthTextureDesc.Format = DXGI_FORMAT_R32_FLOAT;
+		m_DepthTextureDesc.SampleDesc.Count = 1;
+		m_DepthTextureDesc.SampleDesc.Quality = 0;
+		m_DepthTextureDesc.Usage = D3D11_USAGE_DEFAULT;
+		m_DepthTextureDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D10_BIND_RENDER_TARGET;
+		m_DepthTextureDesc.CPUAccessFlags = 0;
+		m_DepthTextureDesc.MiscFlags = 0;
+		hr = m_pDevice->CreateTexture2D(&m_DepthTextureDesc, NULL, &m_pDepthTexture);
 		if (FAILED(hr)) return false;
 
 		hr = m_pDevice->CreateRenderTargetView(m_pDepthTexture, NULL, &m_pDepthRenderTargetView);
@@ -361,8 +374,6 @@ namespace Render
 
 			for(int i = 0; i < 4; ++i)
 				m_pZeroedStructuredBuffer->Set(i, 0);
-			
-			m_GlobalThreadConstBuffer->Set({ { 16,16,1,0 },{ (m_ScreenWidth + 15) / 16 , (m_ScreenHeight + 15) / 16, 1, 0 } });
 		}
 
 		//Copy pass
@@ -428,6 +439,14 @@ namespace Render
 		m_pTextureManager = new TextureManager(m_pDevice);
 		m_pMaterialManager = new MaterialManager(m_pTextureManager);
 
+		if (TwInit(TW_DIRECT3D11, m_pDevice))
+		{
+			TwWindowSize(m_ScreenWidth, m_ScreenHeight);
+			TwBar* bar = TwNewBar("Settings");
+			TwEnumVal renderModeEV[] = { {RenderMode::ForwardPlus, "Forward+"}, { RenderMode::Forward, "Forward" }, { RenderMode::Heatmap, "Heatmap" } };
+			TwType renderModeType = TwDefineEnum("RenderModeEnum", renderModeEV, 3);
+			TwAddVarRW(bar, "Mode", renderModeType, &m_RenderMode, "group='Render'");
+		}
 		return true;
 	}
 
@@ -438,6 +457,21 @@ namespace Render
 	//Renders the scene
 	void DXRenderDevice::RenderScene()
 	{
+		if ((m_PrevScreenHeight != m_ScreenHeight) ||
+			(m_PrevScreenWidth != m_ScreenWidth))
+		{
+			m_PrevScreenHeight = m_ScreenHeight;
+			m_PrevScreenWidth = m_ScreenWidth;
+
+			m_TileRows = ((m_ScreenHeight + 15) / 16);
+			m_TileCols = ((m_ScreenWidth + 15) / 16);
+
+			if (!Resize())
+			{
+				return;
+			}
+		}
+
 		ClearScreen();
 
 		///////////////////////////
@@ -484,18 +518,22 @@ namespace Render
 		frustumData.ScreenHeight = static_cast<float>(m_ScreenHeight);
 		frustumData.CameraMatrix = activeCamera->Matrix();
 
-		switch (m_RenderMethod)
+		switch (m_RenderMode)
 		{
-		case RenderMethod::Forward:
+		case RenderMode::Forward:
 			RenderForward();
 			break;
-		case RenderMethod::ForwardPlus:
+		case RenderMode::ForwardPlus:
 			RenderForwardPlus();
+			break;
+		case RenderMode::Heatmap:
+			RenderHeatmap();
 			break;
 		}
 
-		if (KeyHit(Key_O)) m_RenderMethod = RenderMethod::Forward;
-		if (KeyHit(Key_P)) m_RenderMethod = RenderMethod::ForwardPlus;
+		TwDraw();
+
+		m_pSwapChain->Present(0, 0);
 	}
 
 	//Forward rendering
@@ -549,8 +587,6 @@ namespace Render
 		//Unbind any texture files as they are not bound as apart of the render pass but instead per material
 		m_pDeviceContext->PSSetShaderResources(0, 2, clearResourceViews);
 		m_ForwardPass.Unbind(m_pDeviceContext);
-
-		m_pSwapChain->Present(0, 0);
 	}
 
 	//Forward+ rendering
@@ -673,10 +709,79 @@ namespace Render
 			m_pDeviceContext->Draw(4, 0);
 			m_HeatMapPass.Unbind(m_pDeviceContext);
 		}
-
-		m_pSwapChain->Present(0, 0);
 	}
 
+	//Heatmap rendering
+	void DXRenderDevice::RenderHeatmap()
+	{
+		ID3D11ShaderResourceView* clearResourceViews[] = { NULL, NULL };
+
+		///////////////////////////
+		// Depth pre pass
+
+		m_DepthPass.Bind(m_pDeviceContext);
+
+		m_pDeviceContext->OMSetRenderTargets(1, &m_pDepthRenderTargetView, m_pDepthStencilView);
+		for (auto itr = m_pSceneManager->m_ModelMap.begin(); itr != m_pSceneManager->m_ModelMap.end(); ++itr)
+		{
+			(*itr).first->SetBuffers(m_pDeviceContext);
+			auto& modelList = (*itr).second;
+
+			for (auto modelItr = modelList.begin(); modelItr != modelList.end(); ++modelItr)
+			{
+				m_ObjMatrixConstBuffer->Set({ (*modelItr)->WorldMatrix() });
+				m_ObjMatrixConstBuffer->CommitChanges(m_pDeviceContext);
+
+				m_pDeviceContext->DrawIndexed((*itr).first->GetIndexCount(), 0, 0);
+			}
+		}
+		m_pDeviceContext->OMSetRenderTargets(1, &m_pRenderTargetView, m_pDepthStencilView);
+
+		m_DepthPass.Unbind(m_pDeviceContext);
+
+		///////////////////////////
+		// Copy reset
+
+		//set buffer data
+		m_GlobalThreadConstBuffer->Set({ { 2, 2, 1, 0 },{ 1, 1, 1, 0 } });
+
+		//dispatch
+		m_CopyPass.Bind(m_pDeviceContext);
+		m_pDeviceContext->Dispatch(1, 1, 1);
+		m_CopyPass.Unbind(m_pDeviceContext);
+
+		///////////////////////////
+		// Frustum calc
+
+		//set buffer data
+		m_GlobalThreadConstBuffer->Set({ { 16, 16, 1, 0 },{ (m_TileCols + 15) / 16, (m_TileRows + 15) / 16, 1, 0 } });
+
+		//dispatch
+		m_FrustumPass.Bind(m_pDeviceContext);
+		m_pDeviceContext->Dispatch((m_TileCols + 15) / 16, (m_TileRows + 15) / 16, 1);
+		m_FrustumPass.Unbind(m_pDeviceContext);
+
+		///////////////////////////
+		// Lighting compute
+
+		//set buffer data
+		m_GlobalThreadConstBuffer->Set({ { 16, 16, 1, 0 },{ m_TileCols , m_TileRows, 1, 0 } });
+
+		//dispatch
+		m_LightCullPass.Bind(m_pDeviceContext);
+		m_pDeviceContext->CSSetShaderResources(2, 1, &m_pDepthResourceView);
+		m_pDeviceContext->Dispatch(m_TileCols, m_TileRows, 1);
+		m_pDeviceContext->CSSetShaderResources(2, 1, clearResourceViews);
+		m_LightCullPass.Unbind(m_pDeviceContext);
+
+		///////////////////////////
+		// Heat Map pass
+		m_HeatMapPass.Bind(m_pDeviceContext);
+		m_pDeviceContext->IASetInputLayout(NULL);
+		m_pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+		m_pDeviceContext->Draw(4, 0);
+		m_HeatMapPass.Unbind(m_pDeviceContext);
+	}
 
 	///////////////////////////
 	// Render steps
@@ -696,14 +801,6 @@ namespace Render
 	//Creates and sets the perspective matrix from a camera
 	gen::CMatrix4x4 DXRenderDevice::CalcPerspectiveMatrix(Scene::Camera* camera)
 	{
-		//g_GlobalMatrices.projection.MakeIdentity();
-
-		////Formula taken from D3DXMatrixPerspectiveFovLH
-
-		//float ratio = static_cast<float>(m_ScreenWidth) / static_cast<float>(m_ScreenHeight);
-		//float xScale = 1.0f / gen::Tan(gen::ToRadians(camera->GetFOV()) * 0.25f);
-		//float yScale = xScale / ratio;
-
 		float hbyw = static_cast<float>(m_ScreenHeight) / static_cast<float>(m_ScreenWidth);
 		float wbyh = static_cast<float>(m_ScreenWidth) / static_cast<float>(m_ScreenHeight);
 
@@ -714,14 +811,148 @@ namespace Render
 		gen::CMatrix4x4 matrix;
 		matrix.Set(mat4x4.m[0]);
 		return matrix;
+	}
 
-		/*g_GlobalMatrices.projection.e00 = yScale;
-		g_GlobalMatrices.projection.e11 = xScale;
-		g_GlobalMatrices.projection.e22 = camera->GetFarClip() / (camera->GetFarClip() - camera->GetNearClip());
-		g_GlobalMatrices.projection.e32 = (-camera->GetFarClip() - (-(camera->GetNearClip()))) / (camera->GetFarClip() - camera->GetNearClip());
-		g_GlobalMatrices.projection.e23 = 1.0f;
-		g_GlobalMatrices.projection.e33 = 0.0f;
+	//Resizes all components dependant on screen size
+	bool DXRenderDevice::Resize()
+	{
+		HRESULT hr = S_OK;
+		ID3D11RenderTargetView* clearRenderView[] = { NULL };
 
-		g_GlobalMatrices.projection.Transpose();*/
+
+		////////////////////////////////////////////////////
+		// Destroy any Direct X resource that needs to be
+
+		TwWindowSize(0, 0);
+
+		m_pDeviceContext->OMSetRenderTargets(1, clearRenderView, NULL);
+
+		SAFE_RELEASE(m_pDepthStencilView);
+		SAFE_RELEASE(m_pDepthStencilBuffer);
+		SAFE_RELEASE(m_pRenderTargetView);
+
+		SAFE_RELEASE(m_pDepthTexture);
+		SAFE_RELEASE(m_pDepthResourceView);
+		SAFE_RELEASE(m_pDepthRenderTargetView);
+
+
+		////////////////////////////////////////////////////
+		// Create the resized Direct X resources
+
+		m_SwapChainDesc.BufferDesc.Width = m_ScreenWidth;
+		m_SwapChainDesc.BufferDesc.Height = m_ScreenHeight;
+		m_pSwapChain->ResizeBuffers(m_SwapChainDesc.BufferCount,
+			m_SwapChainDesc.BufferDesc.Width,
+			m_SwapChainDesc.BufferDesc.Height,
+			m_SwapChainDesc.BufferDesc.Format,
+			m_SwapChainDesc.Flags);
+
+		// Specify the render target as the back-buffer - this is an advanced topic. This code almost always occurs in the standard D3D setup
+		ID3D11Texture2D* pBackBuffer;
+		hr = m_pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (LPVOID*)&pBackBuffer);
+		if (FAILED(hr)) return false;
+		hr = m_pDevice->CreateRenderTargetView(pBackBuffer, NULL, &m_pRenderTargetView);
+		pBackBuffer->Release();
+		if (FAILED(hr)) return false;
+
+		m_DepthStencilDesc.Width = m_ScreenWidth;
+		m_DepthStencilDesc.Height = m_ScreenHeight;
+		hr = m_pDevice->CreateTexture2D(&m_DepthStencilDesc, NULL, &m_pDepthStencilBuffer);
+		if (FAILED(hr)) return false;
+
+		m_DepthTextureDesc.Width = m_ScreenWidth;
+		m_DepthTextureDesc.Height = m_ScreenHeight;
+		hr = m_pDevice->CreateTexture2D(&m_DepthTextureDesc, NULL, &m_pDepthTexture);
+		if (FAILED(hr)) return false;
+
+		hr = m_pDevice->CreateRenderTargetView(m_pDepthTexture, NULL, &m_pDepthRenderTargetView);
+		if (FAILED(hr)) return false;
+
+		// Create the depth shader resource view
+		D3D11_SHADER_RESOURCE_VIEW_DESC descDepthSRV;
+		ZeroMemory(&descDepthSRV, sizeof(descDepthSRV));
+		descDepthSRV.Format = DXGI_FORMAT_R32_FLOAT;
+		descDepthSRV.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+		descDepthSRV.Texture2D.MostDetailedMip = 0;
+		descDepthSRV.Texture2D.MipLevels = -1;
+
+		hr = m_pDevice->CreateShaderResourceView(m_pDepthTexture, &descDepthSRV, &m_pDepthResourceView);
+		if (FAILED(hr)) return false;
+
+		// Create the depth stencil view, i.e. indicate that the texture just created is to be used as a depth buffer
+		D3D11_DEPTH_STENCIL_VIEW_DESC descDSV;
+		ZeroMemory(&descDSV, sizeof(descDSV));
+		descDSV.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+		descDSV.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+		descDSV.Texture2D.MipSlice = 0;
+		hr = m_pDevice->CreateDepthStencilView(m_pDepthStencilBuffer, &descDSV, &m_pDepthStencilView);
+		if (FAILED(hr)) return false;
+
+		// Select the back buffer and depth buffer to use for rendering now
+		m_pDeviceContext->OMSetRenderTargets(1, &m_pRenderTargetView, m_pDepthStencilView);
+
+		// Setup the viewport - defines which part of the window we will render to, almost always the whole window
+		D3D11_VIEWPORT vp;
+		ZeroMemory(&vp, sizeof(vp));
+		vp.Width = static_cast<float>(m_ScreenWidth);
+		vp.Height = static_cast<float>(m_ScreenHeight);
+		vp.MinDepth = 0.0f;
+		vp.MaxDepth = 1.0f;
+		vp.TopLeftX = 0;
+		vp.TopLeftY = 0;
+		m_pDeviceContext->RSSetViewports(1, &vp);
+
+
+		////////////////////////////////////////////////////
+		// Destroy any structured buffers that needs to be
+
+		//Remove resoruces from render passes
+		m_FullRenderPass.RemoveResource(m_pLightIndexStructuredBuffer);
+		m_FullRenderPass.RemoveResource(m_pLightGrid);
+
+		m_LightCullPass.RemoveResource(m_pFrustumStructuredBuffer);
+		m_LightCullPass.RemoveResource(m_pLightIndexStructuredBuffer);
+		m_LightCullPass.RemoveResource(m_pLightGrid);
+
+		m_FrustumPass.RemoveResource(m_pFrustumStructuredBuffer);
+
+		m_HeatMapPass.RemoveResource(m_pLightGrid);
+
+		//Destroy buffers
+		if (m_pFrustumStructuredBuffer != nullptr) delete m_pFrustumStructuredBuffer;
+		if (m_pLightIndexStructuredBuffer != nullptr) delete m_pLightIndexStructuredBuffer;
+		if (m_pLightGrid != nullptr) delete m_pLightGrid;
+
+
+		////////////////////////////////////////////////////
+		// Create the resized structured buffers resources
+
+		m_pFrustumStructuredBuffer = new DXG::StructuredBuffer<Frustum>;
+		m_pLightIndexStructuredBuffer = new DXG::StructuredBuffer<DXG::uint>;
+		m_pLightGrid = new Texture2D;
+
+		if (!m_pLightIndexStructuredBuffer->Init(m_pDevice, m_TileRows * m_TileCols * 256, DXG::CPUAccess::None, true) ||
+			!m_pFrustumStructuredBuffer->Init(m_pDevice, m_TileRows * m_TileCols, DXG::CPUAccess::None, true) ||
+			!m_pLightGrid->Init(m_pDevice, m_TileCols, m_TileRows))
+		{
+			return false;
+		}
+
+		//Re-add resources to render passes
+
+		m_FullRenderPass.AddResource(m_pLightIndexStructuredBuffer, DXG::ShaderType::Pixel, 3, DXG::BufferType::Structured);
+		m_FullRenderPass.AddResource(m_pLightGrid, DXG::ShaderType::Pixel, 4, DXG::BufferType::Structured);
+
+		m_LightCullPass.AddResource(m_pFrustumStructuredBuffer, DXG::ShaderType::Compute, 1, DXG::BufferType::Structured);
+		m_LightCullPass.AddResource(m_pLightIndexStructuredBuffer, DXG::ShaderType::Compute, 0, DXG::BufferType::UAV);
+		m_LightCullPass.AddResource(m_pLightGrid, DXG::ShaderType::Compute, 1, DXG::BufferType::UAV);
+
+		m_FrustumPass.AddResource(m_pFrustumStructuredBuffer, DXG::ShaderType::Compute, 0, DXG::BufferType::UAV);
+
+		m_HeatMapPass.AddResource(m_pLightGrid, DXG::ShaderType::Pixel, 0, DXG::BufferType::Structured);
+
+		TwWindowSize(m_ScreenWidth, m_ScreenHeight);
+
+		return true;
 	}
 }
