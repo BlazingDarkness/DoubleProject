@@ -296,7 +296,19 @@ LRESULT CALLBACK Engine::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 
 	case WM_SIZING:
 		//rect = *(reinterpret_cast<RECT*>(lParam));
-		if (m_pEngine != nullptr)
+		/*if (m_pEngine != nullptr)
+		{
+			if (SUCCEEDED(GetWindowRect(hWnd, &rect)))
+			{
+				m_pEngine->m_pRenderDevice->SetScreenHeight(rect.bottom - rect.top);
+				m_pEngine->m_pRenderDevice->SetScreenWidth(rect.right - rect.left);
+			}
+		}*/
+		break;
+
+	case WM_SIZE:
+		//rect = *(reinterpret_cast<RECT*>(lParam));
+		if ((m_pEngine != nullptr) && (m_pEngine->m_pRenderDevice != nullptr))
 		{
 			if (SUCCEEDED(GetWindowRect(hWnd, &rect)))
 			{
