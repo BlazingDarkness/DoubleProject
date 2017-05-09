@@ -83,4 +83,22 @@ namespace Render
 
 		return &g_DefaultMaterial;
 	}
+
+
+	///////////////////////////
+	// Material destruction
+
+	//Destroys a material
+	void MaterialManager::RemoveMaterial(Material* materialPtr)
+	{
+		for (auto material = m_MaterialList.begin(); material != m_MaterialList.end(); ++material)
+		{
+			if ((*material) == materialPtr)
+			{
+				delete (*material);
+				m_MaterialList.erase(material);
+				return;
+			}
+		}
+	}
 }

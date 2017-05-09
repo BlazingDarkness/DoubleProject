@@ -34,6 +34,12 @@ namespace Render
 		//Returns a pointer to the default material if it doesn't exist
 		Material* GetMaterial(const std::string& texName);
 
+		///////////////////////////
+		// Material destruction
+
+		//Destroys a material
+		void RemoveMaterial(Material* material);
+
 	private:
 		using MaterialList = std::list<Material*>;
 
