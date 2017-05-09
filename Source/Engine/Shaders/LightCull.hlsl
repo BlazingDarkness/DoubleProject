@@ -38,7 +38,7 @@ void main(CSInput i)
 	if (i.GroupIndex == 0) // Only need one thread to initialise variables
 	{
 		TileLightCount = 0;
-		GroupFrustum = FrustumBuffer[i.GroupID.x + (i.GroupID.y * 80)];
+		GroupFrustum = FrustumBuffer[i.GroupID.x + (i.GroupID.y * NumOfThreadGroups.x)];
 		MinDepth = 0xffffffff;
 		MaxDepth = 0.0f;
 	}
