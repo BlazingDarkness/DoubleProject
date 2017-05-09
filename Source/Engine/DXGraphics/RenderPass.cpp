@@ -28,6 +28,19 @@ namespace DXG
 		m_Resources.push_back(metaData);
 	}
 
+	//Removes a resource
+	void RenderPass::RemoveResource(IDXResource* resource)
+	{
+		for (auto itr = m_Resources.begin(); itr != m_Resources.end(); ++itr)
+		{
+			if ((*itr).m_pResource == resource)
+			{
+				m_Resources.erase(itr);
+				return;
+			}
+		}
+	}
+
 	///////////////////////////
 	// Bindings
 

@@ -23,6 +23,9 @@ namespace DXG
 		//Adds a resource to be bounds during the render pass
 		void AddResource(IDXResource* resource, ShaderType shaderType, uint index, BufferType bufferType);
 
+		//Removes a resource
+		void RemoveResource(IDXResource* resource);
+
 		///////////////////////////
 		// Bindings
 
