@@ -20,31 +20,31 @@ namespace DXG
 		//Destructor ensures clean up of DirectX objects and cpu data
 		~StructuredBuffer()
 		{
-			SAFE_RELEASE(m_pResourceView);
-			SAFE_RELEASE(m_pUnorderedAccessView);
-			SAFE_RELEASE(m_pDataBuffer);
-
-			if (m_pData != nullptr)
-			{
-				delete[] m_pData;
-				m_pData = nullptr;
-			}
+			Destroy();
 		}
 
 		//Initialises the buffer with a set size
 		bool Init(ID3D11Device* pDevice, uint size, CPUAccess access = CPUAccess::None, bool isUAV = false)
 		{
 			//static_assert(sizeof(StructType) % 16 == 0, "Struct not divisable by 16 bytes");
-
 			m_CPUAccess = access;
 			m_IsUAV = isUAV;
+
+			return Resize(pDevice, size);
+		}
+
+		bool Resize(ID3D11Device* pDevice, uint size)
+		{
+			Destroy();
+
+			m_ArraySize = size;
+			m_DataSize = sizeof(StructType) * size;
 
 			//Grab the memory used to copy data to and from the buffer
 			if (m_CPUAccess != CPUAccess::None)
 			{
-				m_pData = new StructType[size];
+				m_pData = new StructType[m_ArraySize];
 			}
-			m_DataSize = sizeof(StructType) * size;
 
 			//Create the buffer
 			D3D11_BUFFER_DESC bufferDesc;
@@ -83,8 +83,8 @@ namespace DXG
 				descSRV.Format = DXGI_FORMAT_UNKNOWN;
 				descSRV.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
 				descSRV.Buffer.FirstElement = 0;
-				descSRV.Buffer.NumElements = size;
-				descSRV.Buffer.ElementWidth = size;
+				descSRV.Buffer.NumElements = m_ArraySize;
+				descSRV.Buffer.ElementWidth = m_ArraySize;
 				if (FAILED(pDevice->CreateShaderResourceView(m_pDataBuffer, &descSRV, &m_pResourceView)))
 				{
 					return false;
@@ -98,7 +98,7 @@ namespace DXG
 				uavDesc.Format = DXGI_FORMAT_UNKNOWN;
 				uavDesc.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
 				uavDesc.Buffer.FirstElement = 0;
-				uavDesc.Buffer.NumElements = size;
+				uavDesc.Buffer.NumElements = m_ArraySize;
 				uavDesc.Buffer.Flags = 0;
 
 				if (FAILED(pDevice->CreateUnorderedAccessView(m_pDataBuffer, &uavDesc, &m_pUnorderedAccessView)))
@@ -231,12 +231,26 @@ namespace DXG
 			}
 		}
 
+		void Destroy()
+		{
+			SAFE_RELEASE(m_pResourceView);
+			SAFE_RELEASE(m_pUnorderedAccessView);
+			SAFE_RELEASE(m_pDataBuffer);
+
+			if (m_pData != nullptr)
+			{
+				delete[] m_pData;
+				m_pData = nullptr;
+			}
+		}
+
 	private:
 		CPUAccess m_CPUAccess = CPUAccess::None;
 		StructType* m_pData = nullptr;
-		uint m_DataSize;
+		uint m_DataSize = 0;
+		uint m_ArraySize = 0;
 		bool m_IsDirty = false;
-		bool m_IsUAV;
+		bool m_IsUAV = false;
 
 		ID3D11Buffer* m_pDataBuffer = NULL;
 		ID3D11ShaderResourceView* m_pResourceView = NULL;

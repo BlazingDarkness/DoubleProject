@@ -20,17 +20,23 @@ namespace DXG
 		//Destructor ensures clean up of DirectX objects and cpu data
 		~Texture2D()
 		{
-			SAFE_RELEASE(m_pResourceView);
-			SAFE_RELEASE(m_pUnorderedAccessView);
-			SAFE_RELEASE(m_pTex2D);
+			Destroy();
 		}
 
 		//Initialises the buffer with a set size
 		bool Init(ID3D11Device* pDevice, uint width, uint height)
 		{
 			//static_assert(sizeof(StructType) % 16 == 0, "Struct not divisable by 16 bytes");
-
 			m_IsUAV = true;
+
+			return Resize(pDevice, width, height);
+		}
+
+		bool Resize(ID3D11Device* pDevice, uint width, uint height)
+		{
+			Destroy();
+			m_Width = width;
+			m_Height = height;
 
 			//Create the buffer
 			D3D11_TEXTURE2D_DESC texDesc;
@@ -159,9 +165,18 @@ namespace DXG
 			}
 		}
 
+		void Destroy()
+		{
+			SAFE_RELEASE(m_pResourceView);
+			SAFE_RELEASE(m_pUnorderedAccessView);
+			SAFE_RELEASE(m_pTex2D);
+		}
+
 	private:
-		uint m_DataSize;
-		bool m_IsUAV;
+		uint m_Width = 0;
+		uint m_Height = 0;
+		uint m_DataSize = 0;
+		bool m_IsUAV = false;
 
 		ID3D11Texture2D* m_pTex2D = NULL;
 		ID3D11ShaderResourceView* m_pResourceView = NULL;

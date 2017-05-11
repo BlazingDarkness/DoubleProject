@@ -904,52 +904,15 @@ namespace Render
 
 
 		////////////////////////////////////////////////////
-		// Destroy any structured buffers that needs to be
+		// Create the resized structured buffers resources
 
-		//Remove resoruces from render passes
-		m_FullRenderPass.RemoveResource(m_pLightIndexStructuredBuffer);
-		m_FullRenderPass.RemoveResource(m_pLightGrid);
-
-		m_LightCullPass.RemoveResource(m_pFrustumStructuredBuffer);
-		m_LightCullPass.RemoveResource(m_pLightIndexStructuredBuffer);
-		m_LightCullPass.RemoveResource(m_pLightGrid);
-
-		m_FrustumPass.RemoveResource(m_pFrustumStructuredBuffer);
-
-		m_HeatMapPass.RemoveResource(m_pLightGrid);
-
-		//Destroy buffers
-		if (m_pFrustumStructuredBuffer != nullptr) delete m_pFrustumStructuredBuffer;
-		if (m_pLightIndexStructuredBuffer != nullptr) delete m_pLightIndexStructuredBuffer;
-		if (m_pLightGrid != nullptr) delete m_pLightGrid;
+		m_pFrustumStructuredBuffer->Resize(m_pDevice, m_TileRows * m_TileCols);
+		m_pLightIndexStructuredBuffer->Resize(m_pDevice, m_TileRows * m_TileCols * 256);
+		m_pLightGrid->Resize(m_pDevice, m_TileCols, m_TileRows);
 
 
 		////////////////////////////////////////////////////
-		// Create the resized structured buffers resources
-
-		m_pFrustumStructuredBuffer = new DXG::StructuredBuffer<Frustum>;
-		m_pLightIndexStructuredBuffer = new DXG::StructuredBuffer<DXG::uint>;
-		m_pLightGrid = new Texture2D;
-
-		if (!m_pLightIndexStructuredBuffer->Init(m_pDevice, m_TileRows * m_TileCols * 256, DXG::CPUAccess::None, true) ||
-			!m_pFrustumStructuredBuffer->Init(m_pDevice, m_TileRows * m_TileCols, DXG::CPUAccess::None, true) ||
-			!m_pLightGrid->Init(m_pDevice, m_TileCols, m_TileRows))
-		{
-			return false;
-		}
-
-		//Re-add resources to render passes
-
-		m_FullRenderPass.AddResource(m_pLightIndexStructuredBuffer, DXG::ShaderType::Pixel, 3, DXG::BufferType::Structured);
-		m_FullRenderPass.AddResource(m_pLightGrid, DXG::ShaderType::Pixel, 4, DXG::BufferType::Structured);
-
-		m_LightCullPass.AddResource(m_pFrustumStructuredBuffer, DXG::ShaderType::Compute, 1, DXG::BufferType::Structured);
-		m_LightCullPass.AddResource(m_pLightIndexStructuredBuffer, DXG::ShaderType::Compute, 0, DXG::BufferType::UAV);
-		m_LightCullPass.AddResource(m_pLightGrid, DXG::ShaderType::Compute, 1, DXG::BufferType::UAV);
-
-		m_FrustumPass.AddResource(m_pFrustumStructuredBuffer, DXG::ShaderType::Compute, 0, DXG::BufferType::UAV);
-
-		m_HeatMapPass.AddResource(m_pLightGrid, DXG::ShaderType::Pixel, 0, DXG::BufferType::Structured);
+		// Resize TweakBar
 
 		TwWindowSize(m_ScreenWidth, m_ScreenHeight);
 
